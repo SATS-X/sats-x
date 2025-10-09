@@ -22,6 +22,7 @@ export default function Header({ onMenuClick }) {
     const { t } = useLanguage()
     const userAttributes = useUserAttributes()
 
+    
     return (
         <div className="bg-white h-16 px-4 sm:px-6 flex items-center border-b border-slate-200 justify-between shadow-sm">
             {/* Left section with menu button and search */}

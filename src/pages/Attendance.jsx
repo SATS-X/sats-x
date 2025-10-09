@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { HiOutlineSearch, HiOutlineFilter, HiOutlineDownload, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock, HiOutlineCalendar, HiOutlineRefresh } from 'react-icons/hi'
+import { HiOutlineSearch, HiOutlineFilter, HiOutlineDownload, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock, HiOutlineCalendar, HiOutlineRefresh, HiOutlinePhotograph } from 'react-icons/hi'
 import { getAllAttendance } from '../api/attendance/getAttendance'
 import { useLanguage } from '../contexts/LanguageContext'
+import ImagePreview from '../components/Attendance/ImagePreview'
 
 const Attendance = () => {
     const { t } = useLanguage()
@@ -14,6 +15,9 @@ const Attendance = () => {
     const [error, setError] = useState(null)
     const [currentPage, setCurrentPage] = useState(1)
     const pageSize = 15
+    const [showImagePreview, setShowImagePreview] = useState(false)
+    const [selectedStudent, setSelectedStudent] = useState(null)
+    const [loadingImageId, setLoadingImageId] = useState(null)
 
     const fetchAttendance = async () => {
         setLoading(true)
@@ -128,6 +132,122 @@ const Attendance = () => {
     const lateCount = filteredAttendance.filter(r => (r.remark || '').toLowerCase() === 'late').length
     const absentCount = filteredAttendance.filter(r => (r.remark || '').toLowerCase() === 'absent').length
     const attendanceRate = totalStudents > 0 ? Math.round(((presentCount + lateCount) / totalStudents) * 100) : 0
+
+    const formatDateForAPI = (day, month, year) => {
+        if (!day || !month || !year) return null
+        return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`
+    }
+
+    const formatTimeForFileName = (time, day, month, year) => {
+        if (!time || !day || !month || !year) return null
+        // Convert time format "HH:MM:SS" or "HH:MM" to "HH-MM-SS" for filename
+        const timeParts = time.split(':')
+        if (timeParts.length >= 2) {
+            const hours = timeParts[0].padStart(2, '0')
+            const minutes = timeParts[1].padStart(2, '0')
+            // Sử dụng giây thực từ time, nếu không có thì mặc định là '00'
+            const seconds = timeParts.length >= 3 ? timeParts[2].padStart(2, '0') : '00'
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            return `${dateStr}_${hours}-${minutes}-${seconds}.jpg`
+        }
+        return null
+    }
+
+    const callWebSocketAPI = (record) => {
+        const formattedDay = formatDateForAPI(record.day, record.month, record.year)
+        const fileName = formatTimeForFileName(record.time, record.day, record.month, record.year)
+        
+        if (!formattedDay || !fileName) {
+            console.error('Cannot format date or filename for WebSocket API')
+            setSelectedStudent(record)
+            setShowImagePreview(true)
+            return
+        }
+
+        setLoadingImageId(record.id)
+        const wsUrl = 'wss://zg1nxlo8m4.execute-api.ap-southeast-1.amazonaws.com/production'
+        const ws = new WebSocket(wsUrl)
+
+        const payload = {
+            action: "url",
+            object: "history",
+            deviceId: "ESP32CAM_01",
+            day: formattedDay,
+            name: fileName,
+            expiration: 3600
+        }
+
+        ws.onopen = () => {
+            console.log('WebSocket connection opened')
+            console.log('Sending payload:', payload)
+            ws.send(JSON.stringify(payload))
+        }
+
+        ws.onmessage = (event) => {
+            try {
+                const response = JSON.parse(event.data)
+                console.log('WebSocket response:', response)
+                
+                // Xử lý response từ WebSocket
+                if (response.status === 'success' && response.data && response.data.presigned_url) {
+                    // Cập nhật record với URL ảnh thực
+                    const updatedRecord = {
+                        ...record,
+                        imageUrl: response.data.presigned_url
+                    }
+                    setSelectedStudent(updatedRecord)
+                    setShowImagePreview(true)
+                } else {
+                    console.warn('No presigned URL in response')
+                    // Vẫn hiển thị modal với avatar mặc định
+                    setSelectedStudent(record)
+                    setShowImagePreview(true)
+                }
+            } catch (error) {
+                console.error('Error parsing WebSocket response:', error)
+                // Vẫn hiển thị modal với avatar mặc định
+                setSelectedStudent(record)
+                setShowImagePreview(true)
+            }
+            setLoadingImageId(null)
+            ws.close()
+        }
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error)
+            // Vẫn hiển thị modal với avatar mặc định nếu có lỗi
+            setSelectedStudent(record)
+            setShowImagePreview(true)
+            setLoadingImageId(null)
+            ws.close()
+        }
+
+        ws.onclose = (event) => {
+            console.log('WebSocket connection closed:', event.code, event.reason)
+        }
+
+        // Timeout sau 10 giây
+        setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                console.warn('WebSocket timeout, closing connection')
+                ws.close()
+                // Vẫn hiển thị modal với avatar mặc định
+                setSelectedStudent(record)
+                setShowImagePreview(true)
+                setLoadingImageId(null)
+            }
+        }, 10000)
+    }
+
+    const handleImageClick = (record) => {
+        // Call WebSocket API để lấy presigned URL cho ảnh
+        callWebSocketAPI(record)
+    }
+
+    const handleCloseImagePreview = () => {
+        setShowImagePreview(false)
+        setSelectedStudent(null)
+    }
 
     return (
         <div className="space-y-6">
@@ -318,6 +438,9 @@ const Attendance = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                     {t('studentName')}
                                 </th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    {t('image')}
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                     {t('class')}
                                 </th>
@@ -351,6 +474,20 @@ const Attendance = () => {
                                                 <div className="text-sm text-slate-500">{record.student_id}</div>
                                             </div>
                                         </div>
+                                    </td>
+                                     <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        <button
+                                            onClick={() => handleImageClick(record)}
+                                            disabled={loadingImageId === record.id}
+                                            className={`inline-flex items-center justify-center w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105 ${loadingImageId === record.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            title={`${t('viewImage')} - ${record.student_name}`}
+                                        >
+                                            {loadingImageId === record.id ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            ) : (
+                                                <HiOutlinePhotograph className="text-lg" />
+                                            )}
+                                        </button>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex flex-wrap gap-1 max-w-[260px]">
@@ -409,6 +546,14 @@ const Attendance = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Image Preview Modal */}
+            <ImagePreview
+                isOpen={showImagePreview}
+                onClose={handleCloseImagePreview}
+                studentData={selectedStudent}
+                attendanceRecord={selectedStudent}
+            />
         </div>
     )
 }
