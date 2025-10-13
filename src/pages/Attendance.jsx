@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { HiOutlineSearch, HiOutlineFilter, HiOutlineDownload, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock, HiOutlineCalendar, HiOutlineRefresh, HiOutlinePhotograph } from 'react-icons/hi'
 import { getAllAttendance } from '../api/attendance/getAttendance'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useToast } from '../contexts/ToastContext'
+import { useWebSocketMessage } from '../hooks/useWebSocketMessage'
+import { WS_URL } from '../config/api'
 import ImagePreview from '../components/Attendance/ImagePreview'
 
 const Attendance = () => {
     const { t } = useLanguage()
+    const { showSuccess, showInfo } = useToast()
     const [selectedDate, setSelectedDate] = useState('')
     const [selectedClass, setSelectedClass] = useState('all')
     const [selectedSubject, setSelectedSubject] = useState('all')
@@ -62,6 +66,66 @@ const Attendance = () => {
         }
         load()
     }, [])
+
+    // Subscribe to WebSocket messages for real-time attendance updates
+    useWebSocketMessage('*', (data) => {
+        console.log('📨 Received WebSocket message:', data)
+        
+        // Check if this is an attendance update message
+        if (data.status === 'success' && data.attendance_result) {
+            const attendanceInfo = data.attendance_result.attendance_result
+            const classInfo = data.attendance_result.class_info
+            const attendanceDetails = data.attendance_result.attendance_details
+            const faceCompare = data.face_compare_result
+            
+            // Extract student name from external_id (format: "TranDaiVi-N22DCCI044")
+            const externalId = faceCompare?.external_id || ''
+            let studentName = ''
+            let studentId = attendanceDetails?.student_id || faceCompare?.student_id || 'Unknown'
+            
+            if (externalId && externalId.includes('-')) {
+                const parts = externalId.split('-')
+                studentName = parts[0] // "TranDaiVi"
+                studentId = parts[1] || studentId // "N22DCCI044"
+            }
+            
+            const subjectName = classInfo?.subject || attendanceDetails?.subject_id || 'Unknown Subject'
+            const status = attendanceDetails?.remark || attendanceInfo?.new_status || 'Unknown'
+            const time = attendanceDetails?.time || attendanceInfo?.time || ''
+            
+            // Determine toast type based on status
+            const isOnTime = status.toLowerCase().includes('on time')
+            const isLate = status.toLowerCase().includes('late')
+            
+            // Create formatted message
+            const message = studentName 
+                ? `${studentName} (${studentId}) đã điểm danh vào lúc ${time}\n${subjectName}`
+                : `${studentId} đã điểm danh vào lúc ${time}\n${subjectName}`
+            
+            // Show toast notification
+            if (isOnTime) {
+                showSuccess(
+                    message,
+                    'Điểm danh đúng giờ'
+                )
+            } else if (isLate) {
+                showInfo(
+                    message,
+                    'Điểm danh muộn'
+                )
+            } else {
+                showInfo(
+                    message,
+                    `Điểm danh: ${status}`
+                )
+            }
+            
+            // Auto refresh attendance data to show new record
+            setTimeout(() => {
+                fetchAttendance()
+            }, 1000)
+        }
+    }, [fetchAttendance, showSuccess, showInfo])
 
     const classes = useMemo(() => {
         const set = new Set()
@@ -165,8 +229,7 @@ const Attendance = () => {
         }
 
         setLoadingImageId(record.id)
-        const wsUrl = 'wss://zg1nxlo8m4.execute-api.ap-southeast-1.amazonaws.com/production'
-        const ws = new WebSocket(wsUrl)
+        const ws = new WebSocket(WS_URL)
 
         const payload = {
             action: "url",

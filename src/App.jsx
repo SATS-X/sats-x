@@ -8,6 +8,8 @@ import Subject from './pages/Subject'
 import Students from './pages/Students'
 import Settings from './pages/Settings'
 import { LanguageProvider } from './contexts/LanguageContext'
+import { ToastProvider } from './contexts/ToastContext'
+import { WebSocketProvider } from './contexts/WebSocketContext'
 
 import { Routes, Route, Navigate } from 'react-router-dom'
 
@@ -65,9 +67,11 @@ function RequireAuth({ children }) {
 function App() {
     return (
         <LanguageProvider>
-            <Authenticator.Provider>
-                <style dangerouslySetInnerHTML={{ __html: customStyles }} />
-                <Routes>
+            <ToastProvider>
+                <WebSocketProvider>
+                    <Authenticator.Provider>
+                        <style dangerouslySetInnerHTML={{ __html: customStyles }} />
+                        <Routes>
                     <Route path="/" element={<Home />} />
                     <Route
                         path="/login"
@@ -153,6 +157,8 @@ function App() {
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
             </Authenticator.Provider>
+                </WebSocketProvider>
+            </ToastProvider>
         </LanguageProvider>
     )
 }

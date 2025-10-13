@@ -45,7 +45,32 @@ export const getScheduleByTeacherId = async (teacherId) => {
     }
 }
 
+/**
+ * Update attendance window for a schedule
+ * PUT /api/schedule/attendance-window
+ */
+export const updateAttendanceWindow = async (scheduleData) => {
+    try {
+        if (!scheduleData) {
+            throw new Error('Schedule data is required')
+        }
+
+        const response = await axios.put(`${API_BASE_URL}/api/schedule/attendance-window`, scheduleData, {
+            headers: { 'Content-Type': 'application/json' }
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error updating attendance window:', error.response?.data || error.message)
+        throw {
+            message: error.response?.data?.error || error.message,
+            status: error.response?.status || 500,
+            data: error.response?.data || null
+        }
+    }
+}
+
 export default {
     getAllSchedules,
-    getScheduleByTeacherId
+    getScheduleByTeacherId,
+    updateAttendanceWindow
 }
