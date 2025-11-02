@@ -9,21 +9,17 @@ export const updateSchedule = async (scheduleData) => {
 
         // Validate required fields
         const requiredFields = ['day', 'month', 'year', 'subject_id', 'start_time']
-        const missingFields = requiredFields.filter(field => !scheduleData[field])
-        
+        const missingFields = requiredFields.filter((field) => !scheduleData[field])
+
         if (missingFields.length > 0) {
             throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
         }
 
         console.log('Updating schedule with data:', scheduleData)
 
-        const response = await axios.put(
-            `${API_BASE_URL}/api/schedule/update-schedule`, 
-            scheduleData,
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        )
+        const response = await axios.put(`${API_BASE_URL}/api/schedule/update-schedule`, scheduleData, {
+            headers: { 'Content-Type': 'application/json' }
+        })
 
         console.log('Schedule updated successfully:', response.data)
         return response.data
@@ -38,4 +34,3 @@ export const updateSchedule = async (scheduleData) => {
 }
 
 export default updateSchedule
-

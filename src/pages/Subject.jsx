@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { HiOutlineAcademicCap, HiOutlineUsers, HiOutlineBookOpen, HiOutlineClipboardList, HiOutlineRefresh, HiOutlineCalendar } from 'react-icons/hi'
 import { getAllSubjectsByTeacherId } from '../api/subject/getSubject'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -7,6 +8,7 @@ import SubjectDetail from '../components/Subject/SubjectDetail'
 
 const Subject = () => {
     const { t } = useLanguage()
+    const location = useLocation()
     const [subjectData, setSubjectData] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -33,6 +35,15 @@ const Subject = () => {
     useEffect(() => {
         fetchSubjects()
     }, [fetchSubjects])
+
+    // Handle navigation from Dashboard
+    useEffect(() => {
+        if (location.state?.selectedSubject) {
+            setSelectedSubject(location.state.selectedSubject)
+            // Clear the state to avoid reopening on refresh
+            window.history.replaceState({}, document.title)
+        }
+    }, [location])
 
     const handleSubjectClick = (subject) => {
         setSelectedSubject(subject)

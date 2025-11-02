@@ -5,7 +5,8 @@ import {
     HiOutlineCog,
     HiOutlineAcademicCap,
     HiOutlineCalendar,
-    HiOutlineClipboardList
+    HiOutlineClipboardList,
+    HiOutlinePhotograph
 } from 'react-icons/hi'
 
 import { MdSubject } from 'react-icons/md'
@@ -17,6 +18,12 @@ export const DASHBOARD_SIDEBAR_LINKS = [
         labelKey: 'dashboard',
         path: '/dashboard',
         icon: <HiOutlineViewGrid />
+    },
+    {
+        key: 'classes',
+        labelKey: 'classes',
+        path: '/classes',
+        icon: <HiOutlineAcademicCap />
     },
     {
         key: 'students',
@@ -41,6 +48,12 @@ export const DASHBOARD_SIDEBAR_LINKS = [
         labelKey: 'schedule',
         path: '/schedule',
         icon: <HiOutlineCalendar />
+    },
+    {
+        key: 'faceManagement',
+        labelKey: 'faceManagement',
+        path: '/face-management',
+        icon: <HiOutlinePhotograph />
     }
 ]
 

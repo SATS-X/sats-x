@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import DashboardStats from '../components/Dashboard/DashboardStats'
 import RecentAttendance from '../components/Dashboard/RecentAttended'
+import TodaySubjects from '../components/Dashboard/TodaySubjects'
 
 const Dashboard = () => {
     const { t } = useLanguage()
@@ -33,6 +34,11 @@ const Dashboard = () => {
             {/* Stats Cards */}
             <div className="dashboard-element">
                 <DashboardStats />
+            </div>
+
+            {/* Today's Subjects */}
+            <div className="dashboard-element">
+                <TodaySubjects />
             </div>
 
             {/* Recent Attendance Section */}

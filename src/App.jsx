@@ -6,7 +6,9 @@ import Layout from './components/shared/Layout'
 import Profile from './pages/Profile'
 import Subject from './pages/Subject'
 import Students from './pages/Students'
+import Classes from './pages/Classes'
 import Settings from './pages/Settings'
+import FaceManagement from './pages/FaceManagement'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
@@ -19,8 +21,6 @@ import '@aws-amplify/ui-react/styles.css'
 
 import { Amplify } from 'aws-amplify'
 import outputs from '../amplify_outputs.json'
-// Removed Classes and Class pages
-// import Student from './pages/Student'
 import Attendance from './pages/Attendance'
 import Schedule from './pages/Schedule'
 import { components, customStyles } from './pages/Login'
@@ -95,6 +95,17 @@ function App() {
                     </Route>
 
                     <Route
+                        path="/classes"
+                        element={
+                            <RequireAuth>
+                                <Layout />
+                            </RequireAuth>
+                        }
+                    >
+                        <Route index element={<Classes />} />
+                    </Route>
+
+                    <Route
                         path="/students"
                         element={
                             <RequireAuth>
@@ -105,8 +116,6 @@ function App() {
                         <Route index element={<Students />} />
                     </Route>
 
-                    {/* Removed /classes route */}
-
                     <Route
                         path="/subjects"
                         element={
@@ -116,7 +125,6 @@ function App() {
                         }
                     >
                         <Route index element={<Subject />} />
-                        {/* Removed Class page route */}
                         <Route path=":subjectId/:classId" element={<Schedule />} />
                     </Route>
 
@@ -142,6 +150,16 @@ function App() {
                         <Route index element={<Schedule />} />
                     </Route>
 
+                    <Route
+                        path="/face-management"
+                        element={
+                            <RequireAuth>
+                                <Layout />
+                            </RequireAuth>
+                        }
+                    >
+                        <Route index element={<FaceManagement />} />
+                    </Route>
 
                     <Route
                         path="/settings"
