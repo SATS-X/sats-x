@@ -1,77 +1,24 @@
-import axios from 'axios'
-import { API_BASE_URL } from '../../config/api'
+import client from '../client'
 
-export const getAllSubjectsByTeacherId = async (teacherId) => {
-    try {
-        if (!teacherId) {
-            throw new Error('Teacher ID is required')
-        }
-
-        const response = await axios.get(`${API_BASE_URL}/api/subject/${teacherId}`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-
-        return response.data
-    } catch (error) {
-        console.error('Error fetching subjects by teacher ID:', error.response?.data || error.message)
-        throw {
-            message: error.response?.data?.error || error.message,
-            status: error.response?.status || 500,
-            data: error.response?.data || null
-        }
-    }
+// GET /api/subject/teacher/:teacher_id — chỉ xem được môn của chính mình (trừ admin).
+export const getSubjectsByTeacherId = async (teacherId) => {
+    if (!teacherId) return { success: false, data: [] }
+    const res = await client.get(`/api/subject/teacher/${teacherId}`)
+    return res.data
 }
 
 export const getSubjectById = async (subjectId) => {
-    try {
-        if (!subjectId) {
-            throw new Error('Subject ID is required')
-        }
-
-        const response = await axios.get(`${API_BASE_URL}/api/subject/${subjectId}`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-
-        return response.data
-    } catch (error) {
-        console.error('Error fetching subject by ID:', error.response?.data || error.message)
-        throw {
-            message: error.response?.data?.error || error.message,
-            status: error.response?.status || 500,
-            data: error.response?.data || null
-        }
-    }
+    const res = await client.get(`/api/subject/${subjectId}`)
+    return res.data
 }
 
-export const getSubjectStudent = async (subjectId) => {
-    try {
-        if (!subjectId) {
-            throw new Error('Subject ID is required')
-        }
-
-        const response = await axios.get(`${API_BASE_URL}/api/subject/${subjectId}/students`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-
-        return response.data
-    } catch (error) {
-        console.error('Error fetching students of subject:', error.response?.data || error.message)
-        throw {
-            message: error.response?.data?.error || error.message,
-            status: error.response?.status || 500,
-            data: error.response?.data || null
-        }
-    }
+export const getSubjectStudents = async (subjectId) => {
+    const res = await client.get(`/api/subject/${subjectId}/students`)
+    return res.data
 }
 
 export default {
-    getAllSubjectsByTeacherId,
+    getSubjectsByTeacherId,
     getSubjectById,
-    getSubjectStudent
+    getSubjectStudents
 }

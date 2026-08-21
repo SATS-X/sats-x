@@ -1,26 +1,34 @@
-import axios from 'axios'
-import { API_BASE_URL } from '../../config/api'
+import client from '../client'
 
-/**
- * Get all classes with student counts
- * GET /api/class
- */
-export const getAllClasses = async () => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/api/class`, {
-            headers: { 'Content-Type': 'application/json' }
-        })
-        return response.data
-    } catch (error) {
-        console.error('Error fetching all classes:', error.response?.data || error.message)
-        throw {
-            message: error.response?.data?.error || error.message,
-            status: error.response?.status || 500,
-            data: error.response?.data || null
-        }
-    }
+export const getClasses = async () => {
+    const res = await client.get('/api/class')
+    return res.data
+}
+
+export const getClassById = async (classId) => {
+    const res = await client.get(`/api/class/${classId}`)
+    return res.data
+}
+
+export const createClass = async (classData) => {
+    const res = await client.post('/api/class', classData)
+    return res.data
+}
+
+export const updateClass = async (classId, classData) => {
+    const res = await client.put(`/api/class/${classId}`, classData)
+    return res.data
+}
+
+export const deleteClass = async (classId) => {
+    const res = await client.delete(`/api/class/${classId}`)
+    return res.data
 }
 
 export default {
-    getAllClasses
+    getClasses,
+    getClassById,
+    createClass,
+    updateClass,
+    deleteClass
 }

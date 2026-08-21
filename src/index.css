@@ -1,93 +1,103 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ==========================================================================
+   Design tokens — hệ thống "thẻ định danh". Xem index.html cho direction
+   contract đầy đủ. Restrained: trung tính + một accent xanh lam duy nhất;
+   màu trạng thái chỉ sống trong dải cạnh thẻ/chip, không lan ra trang trí.
+   ========================================================================== */
 
 @layer base {
+    :root,
+    [data-theme='light'] {
+        --color-bg: 250 250 251;
+        --color-surface: 255 255 255;
+        --color-surface-hover: 244 244 246;
+        --color-surface-sunken: 244 244 246;
+        --color-border: 228 228 231;
+        --color-border-strong: 212 212 216;
+
+        --color-text: 24 24 27;
+        --color-text-secondary: 82 82 91;
+        --color-text-tertiary: 161 161 170;
+
+        --color-accent: 29 78 216; /* blue-700 */
+        --color-accent-hover: 30 64 175; /* blue-800 */
+        --color-accent-foreground: 255 255 255;
+
+        --color-present: 5 150 105; /* emerald-600 */
+        --color-late: 217 119 6; /* amber-600 */
+        --color-absent: 225 29 72; /* rose-600 */
+        --color-danger: 220 38 38; /* red-600 — hành động phá huỷ, khác tông với "vắng" */
+
+        --shadow-elevated:
+            0 12px 32px -8px rgb(24 24 27 / 0.14), 0 4px 12px -4px rgb(24 24 27 / 0.08);
+    }
+
+    [data-theme='dark'] {
+        --color-bg: 17 17 20;
+        --color-surface: 24 24 28;
+        --color-surface-hover: 32 32 37;
+        --color-surface-sunken: 14 14 17;
+        --color-border: 39 39 44;
+        --color-border-strong: 55 55 61;
+
+        --color-text: 244 244 245;
+        --color-text-secondary: 161 161 170;
+        --color-text-tertiary: 113 113 122;
+
+        --color-accent: 59 130 246; /* blue-500 */
+        --color-accent-hover: 96 165 250; /* blue-400 */
+        --color-accent-foreground: 255 255 255;
+
+        --color-present: 52 211 153; /* emerald-400 */
+        --color-late: 251 191 36; /* amber-400 */
+        --color-absent: 251 113 133; /* rose-400 */
+        --color-danger: 248 113 113; /* red-400 */
+
+        --shadow-elevated:
+            0 12px 32px -8px rgb(0 0 0 / 0.55), 0 4px 12px -4px rgb(0 0 0 / 0.4);
+    }
+
+    html {
+        color-scheme: light dark;
+    }
+
     body {
-        font-family: 'Satoshi', sans-serif;
-        font-weight: normal;
-        font-size: 1rem;
-        color: var(--color-body);
-        background-color: var(--color-whiten);
-        position: relative;
-        z-index: 1;
-    }
-}
-
-@layer components {
-}
-
-@layer utilities {
-    /* Chrome, Safari and Opera */
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
+        @apply bg-bg text-text antialiased font-sans;
+        min-height: 100dvh;
+        overflow-x: hidden;
     }
 
-    .no-scrollbar {
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
+    ::selection {
+        @apply bg-accent/20 text-text;
     }
 
-    .chat-height {
-        @apply h-[calc(100vh_-_8.125rem)] lg:h-[calc(100vh_-_5.625rem)];
+    /* Số liệu (mã sinh viên, giờ, %) luôn dùng mono với tabular-nums để các cột thẳng hàng. */
+    .font-data {
+        @apply font-mono tabular-nums;
     }
 
-    .inbox-height {
-        @apply h-[calc(100vh_-_8.125rem)] lg:h-[calc(100vh_-_5.625rem)];
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
     }
 
-    /* Toast Animations */
-    @keyframes slide-down {
-        from {
-            transform: translateY(-100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
+    ::-webkit-scrollbar-track {
+        background: transparent;
     }
 
-    @keyframes slide-up {
-        from {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateY(-100%);
-            opacity: 0;
-        }
+    ::-webkit-scrollbar-thumb {
+        @apply bg-border-strong rounded-full;
     }
 
-    @keyframes progress {
-        from {
-            width: 100%;
-        }
-        to {
-            width: 0%;
-        }
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-text-tertiary;
     }
 
-    .animate-slide-down {
-        animation: slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .animate-slide-up {
-        animation: slide-up 0.3s ease-out;
-    }
-
-    .animate-progress {
-        animation: progress linear;
-    }
-
-    /* Toast Container */
-    .toast-container {
-        position: fixed;
-        z-index: 9999;
-        pointer-events: none;
-    }
-
-    .toast-container > * {
-        pointer-events: auto;
+    /* Focus ring nhất quán cho toàn bộ control tương tác — bàn phím phải luôn thấy được. */
+    :focus-visible {
+        @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-bg;
     }
 }

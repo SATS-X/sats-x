@@ -3,96 +3,93 @@ import PropTypes from 'prop-types'
 import { Link, useLocation } from 'react-router-dom'
 import { HiOutlineLogout, HiX } from 'react-icons/hi'
 import { DASHBOARD_SIDEBAR_LINKS, DASHBOARD_SIDEBAR_BOTTOM_LINKS } from '../../lib/constants/Sidebar'
-import { Authenticator } from '@aws-amplify/ui-react'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useAuth } from '../../contexts/AuthContext'
+import { Avatar } from '../ui'
 import ptitLogo from '../../assets/images/ptit-bg.png'
-
-const linkClass =
-    'flex items-center gap-3 font-medium px-4 py-3 hover:bg-slate-700 hover:text-slate-100 hover:no-underline active:bg-slate-600 rounded-lg text-base transition-all duration-200 ease-in-out'
+import WebSocketStatus from './WebSocketStatus'
 
 export default function Sidebar({ onClose }) {
     const { t } = useLanguage()
-    
+    const { user, logout } = useAuth()
+
     return (
-        <div className="bg-gradient-to-b from-slate-800 via-slate-900 to-slate-800 w-72 h-full p-4 flex flex-col shadow-2xl">
-            {/* Mobile close button */}
-            <div className="flex items-center justify-between mb-6 lg:justify-start">
-                <div className="flex items-center gap-3 px-2 py-4 font-bold border-b border-slate-600 flex-1 lg:border-b-0">
-                    <div className="bg-white p-2 rounded-lg shadow-lg">
-                        <img 
-                            src={ptitLogo} 
-                            alt="PTIT Logo" 
-                            className="w-7 h-7 object-contain"
-                        />
-                    </div>
-                    <div className="text-white">
-                        <div className="text-lg font-bold">
-                            PTIT Attendance
+        <aside className="flex h-full w-72 flex-col justify-between border-r border-border bg-surface p-4">
+            <div className="min-h-0">
+                <div className="mb-4 flex items-center justify-between px-1 py-2">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-card border border-border bg-white p-1">
+                            <img src={ptitLogo} alt="PTIT" className="h-full w-full object-contain" />
                         </div>
-                        <div className="text-sm text-slate-300">
-                            Management System
+                        <div>
+                            <div className="text-sm font-semibold leading-none text-text">PTIT Attendance</div>
+                            <div className="mt-1 text-xs text-text-tertiary">Smart Biometrics</div>
                         </div>
                     </div>
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            aria-label="Đóng menu"
+                            className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text lg:hidden"
+                        >
+                            <HiX className="h-5 w-5" />
+                        </button>
+                    )}
                 </div>
-                <button
-                    onClick={onClose}
-                    className="lg:hidden p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-colors duration-200"
-                >
-                    <HiX fontSize={24} />
-                </button>
+
+                <div className="mb-4 px-1">
+                    <WebSocketStatus compact />
+                </div>
+
+                <nav className="flex max-h-[calc(100vh-280px)] flex-col gap-0.5 overflow-y-auto pr-1">
+                    {DASHBOARD_SIDEBAR_LINKS.map((link) => (
+                        <SidebarLink key={link.key} link={link} onClose={onClose} />
+                    ))}
+                </nav>
             </div>
-            
-            <div className="py-4 flex flex-1 flex-col gap-2 overflow-y-auto">
-                {DASHBOARD_SIDEBAR_LINKS.map((link) => (
-                    <SidebarLink key={link.key} link={link} onClose={onClose} />
-                ))}
-            </div>
-            
-            <div className="flex flex-col gap-2 pt-4 border-t border-slate-600">
+
+            <div className="flex flex-col gap-0.5 border-t border-border pt-3">
                 {DASHBOARD_SIDEBAR_BOTTOM_LINKS.map((link) => (
                     <SidebarLink key={link.key} link={link} onClose={onClose} />
                 ))}
-                <Authenticator>
-                    {({ signOut }) => (
-                        <div 
-                            className={classNames(linkClass, 'cursor-pointer text-red-400 hover:bg-red-900/30 hover:text-red-300')} 
-                            onClick={signOut}
-                        >
-                            <span className="text-xl">
-                                <HiOutlineLogout />
-                            </span>
-                            {t('logout')}
-                        </div>
-                    )}
-                </Authenticator>
+
+                {/* Thẻ mini của người dùng — echo cấu trúc thẻ định danh dùng xuyên suốt app. */}
+                <div className="mt-2 flex items-center gap-2.5 rounded-card border border-border bg-surface-sunken px-2.5 py-2">
+                    <Avatar name={user?.full_name || user?.email} size="sm" />
+                    <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-medium text-text">{user?.full_name || user?.email || 'Người dùng'}</div>
+                        <div className="truncate text-[11px] capitalize text-text-tertiary">{user?.role || 'Giảng viên'}</div>
+                    </div>
+                    <button
+                        onClick={logout}
+                        title={t('logout')}
+                        className="shrink-0 rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
+                    >
+                        <HiOutlineLogout className="h-4 w-4" />
+                    </button>
+                </div>
             </div>
-        </div>
+        </aside>
     )
 }
 
 function SidebarLink({ link, onClose }) {
     const { pathname } = useLocation()
     const { t } = useLanguage()
-    const isActive = pathname.startsWith(link.path)
-
-    const handleClick = () => {
-        if (onClose) {
-            onClose()
-        }
-    }
+    const isActive = pathname === link.path || (link.path !== '/dashboard' && pathname.startsWith(link.path))
 
     return (
         <Link
             to={link.path}
-            onClick={handleClick}
+            onClick={onClose}
             className={classNames(
-                isActive 
-                    ? 'bg-indigo-600 text-white shadow-lg' 
-                    : 'text-slate-300 hover:bg-slate-700/50', 
-                linkClass
+                'flex items-center gap-3 rounded-card border-l-[3px] px-2.5 py-2 text-sm font-medium transition-colors',
+                isActive
+                    ? 'border-accent bg-accent/[0.07] text-accent'
+                    : 'border-transparent text-text-secondary hover:bg-surface-hover hover:text-text'
             )}
         >
-            <span className="text-xl">{link.icon}</span>
+            <span className="text-lg leading-none">{link.icon}</span>
             <span className="truncate">{t(link.labelKey)}</span>
         </Link>
     )

@@ -1,26 +1,24 @@
-// API Configuration
-// You can set the API base URL through environment variables
-// For development: VITE_API_BASE_URL=http://localhost:4000
-// For production: VITE_API_BASE_URL=https://your-api-domain.com
+// API & WebSocket Configuration
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
-// WebSocket Configuration for Attendance (compare face)
-// Lambda 1: Xử lý điểm danh với route 'compare'
-export const WS_ATTENDANCE_URL =
-    import.meta.env.VITE_WS_ATTENDANCE_URL || 'wss://zg1nxlo8m4.execute-api.ap-southeast-1.amazonaws.com/production/'
+// Live AWS WebSocket URL for attendance and face management
+export const WS_URL =
+    import.meta.env.VITE_WS_URL ||
+    'wss://ya0rgv5xbd.execute-api.ap-southeast-1.amazonaws.com/production'
 
-// WebSocket Configuration for Face Management (addFace, deleteFace, listFaces)
-// Lambda 2: Quản lý khuôn mặt với routes 'addFace', 'deleteFace', 'listFaces', etc.
-export const WS_FACE_MANAGEMENT_URL =
-    import.meta.env.VITE_WS_FACE_MANAGEMENT_URL || 'wss://YOUR_FACE_MANAGEMENT_WEBSOCKET_URL/production/'
+export const WS_ATTENDANCE_URL = WS_URL
+export const WS_FACE_MANAGEMENT_URL = WS_URL
 
-// Backward compatibility
-export const WS_URL = WS_ATTENDANCE_URL
+// AWS S3 Configuration
+export const AWS_REGION = import.meta.env.VITE_AWS_REGION || 'ap-southeast-1'
+export const AWS_S3_BUCKET = import.meta.env.VITE_AWS_S3_BUCKET || 'attendance-system-dev-022499043310'
 
 export default {
     API_BASE_URL,
     WS_URL,
     WS_ATTENDANCE_URL,
-    WS_FACE_MANAGEMENT_URL
+    WS_FACE_MANAGEMENT_URL,
+    AWS_REGION,
+    AWS_S3_BUCKET
 }

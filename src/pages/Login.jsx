@@ -1,508 +1,195 @@
-import { useTheme, View, Text, Heading, Button } from '@aws-amplify/ui-react'
-import { useAuthenticator } from '@aws-amplify/ui-react'
-import { MdLock } from 'react-icons/md'
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { HiOutlineMail, HiOutlineLockClosed, HiEye, HiEyeOff, HiOutlineCheckCircle } from 'react-icons/hi'
+import { RiFingerprintLine } from 'react-icons/ri'
+import { Button, Field, Input, ThemeToggle } from '../components/ui'
 import ptitLogo from '../assets/images/ptit-bg.png'
 
-// CSS tùy chỉnh
-const customStyles = `
-  [data-amplify-authenticator] {
-    --amplify-components-button-primary-background-color: #2563eb; /* indigo-600 */
-    --amplify-components-button-primary-hover-background-color: #1d4ed8; /* indigo-700 */
-    --amplify-components-button-primary-focus-background-color: #1d4ed8; /* indigo-700 */
-    --amplify-components-fieldcontrol-focus-border-color: #2563eb; /* indigo-600 */
-    --amplify-components-tabs-item-active-color: #1e293b; /* slate-800 */
-    --amplify-components-tabs-item-active-border-color: #2563eb; /* indigo-600 */
-    --amplify-components-button-link-color: #2563eb; /* indigo-600 */
-    --amplify-components-button-link-hover-color: #1d4ed8; /* indigo-700 */
+const HIGHLIGHTS = [
+    'Nhận diện khuôn mặt dưới 500ms, độ chính xác cao',
+    'Tích hợp IoT Core MQTT & WebSocket hai chiều',
+    'Quản lý lớp học, thời khoá biểu và sinh viên tự động'
+]
 
-    --amplify-components-card-background-color: #ffffff;
-    --amplify-components-card-border-radius: 14px;
-    --amplify-components-card-box-shadow: 0 20px 40px -12px rgba(2, 6, 23, 0.2), 0 6px 18px -6px rgba(2, 6, 23, 0.12);
+export default function Login() {
+    const [mode, setMode] = useState('login') // 'login' | 'activate'
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    --amplify-components-heading-color: #0f172a; /* slate-900 */
-    --amplify-components-text-color: #334155; /* slate-700 */
-    --amplify-components-field-label-color: #334155; /* slate-700 */
+    const { login, activate } = useAuth()
+    const { showError, showSuccess } = useToast()
+    const navigate = useNavigate()
 
-    max-width: 520px;
-    margin: 0 auto;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.95));
-    box-shadow: 0 20px 35px -15px rgba(15, 23, 42, 0.25);
-    overflow: hidden;
-    backdrop-filter: blur(8px);
-    border: none;
-    outline: none;
-  }
-  
-  .amplify-button[data-variation='primary'] {
-    border-radius: 10px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-  }
-  
-  .amplify-input, .amplify-select {
-    border-radius: 10px;
-  }
-  
-  body {
-    background: radial-gradient(1200px 600px at 0% 0%, #dbeafe 0%, transparent 50%),
-                radial-gradient(1200px 600px at 100% 0%, #e0f2fe 0%, transparent 50%),
-                linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  }
-  
-  .text-primary {
-    color: #2563eb !important;
-  }
-  
-  .text-primary-dark {
-    color: #1d4ed8 !important;
-  }
-`
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setIsSubmitting(true)
 
-const components = {
-    Header() {
-        const { tokens } = useTheme()
-
-        return (
-            <View textAlign="center" padding={tokens.space.xl}>
-                <div className="flex items-center justify-center">
-                    <img src={ptitLogo} alt="PTIT Logo" style={{ width: '36px', height: '36px', borderRadius: '1px', objectFit: 'cover', marginRight: '8px' }} />
-                    <span className="text-xl font-bold text-primary" style={{ color: '#2563eb' }}>
-                        PTIT Attendance System
-                    </span>
-                </div>
-            </View>
-        )
-    },
-
-    Footer() {
-        const { tokens } = useTheme()
-
-        return (
-            <View textAlign="center" padding={tokens.space.medium}>
-                <Text color={tokens.colors.neutral[80]} style={{ fontSize: '0.875rem' }}>
-                    &copy; {new Date().getFullYear()} Attendance System - All Rights Reserved
-                </Text>
-            </View>
-        )
-    },
-
-    SignIn: {
-        Header() {
-            return (
-                <div className="px-4 pb-4" style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Welcome Back
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Sign in to access your dashboard
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            const { toForgotPassword } = useAuthenticator()
-
-            return (
-                <View
-                    textAlign="center"
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        paddingTop: '0.5rem',
-                        alignItems: 'center'
-                    }}
-                >
-                    <Button
-                        fontWeight="normal"
-                        onClick={toForgotPassword}
-                        size="small"
-                        variation="link"
-                        style={{ color: '#2563eb' }}
-                    >
-                        Forgot password?
-                    </Button>
-
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.8rem',
-                            color: '#64748b',
-                            gap: '0.25rem'
-                        }}
-                    >
-                        <MdLock style={{ color: '#94a3b8' }} />
-                        <span>Secured with enterprise-grade encryption</span>
-                    </div>
-                </View>
-            )
-        }
-    },
-    SignUp: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Create Account
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Join Attendance System and enhance your security
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            const { toSignIn } = useAuthenticator()
-
-            return (
-                <View textAlign="center">
-                    <Button
-                        fontWeight="normal"
-                        onClick={toSignIn}
-                        size="small"
-                        variation="link"
-                        style={{ color: '#2563eb' }}
-                    >
-                        Already have an account? Sign in
-                    </Button>
-                </View>
-            )
-        }
-    },
-    ConfirmSignUp: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Confirm Your Account
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Enter the confirmation code sent to your email
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            return (
-                <div
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#64748b',
-                        paddingTop: '0.5rem'
-                    }}
-                >
-                    Check your inbox or spam folder for the confirmation code
-                </div>
-            )
-        }
-    },
-    SetupTotp: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Set Up MFA
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Enhance your account security with multi-factor authentication
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            return (
-                <div
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#64748b',
-                        paddingTop: '0.5rem'
-                    }}
-                >
-                    Scan the QR code with an authenticator app like Google Authenticator or Authy
-                </div>
-            )
-        }
-    },
-    ConfirmSignIn: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Verify Your Identity
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Enter the verification code to continue
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            return (
-                <div
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#64748b',
-                        paddingTop: '0.5rem'
-                    }}
-                >
-                    This additional step helps keep your account secure
-                </div>
-            )
-        }
-    },
-    ForgotPassword: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Reset Password
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Enter your email to receive password reset instructions
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            return (
-                <div
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#64748b',
-                        paddingTop: '0.5rem'
-                    }}
-                >
-                    We&apos;ll send instructions to your registered email address
-                </div>
-            )
-        }
-    },
-    ConfirmResetPassword: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Create New Password
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Enter the code and your new password
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            return (
-                <div
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#64748b',
-                        paddingTop: '0.5rem'
-                    }}
-                >
-                    Create a strong password with a mix of letters, numbers and symbols
-                </div>
-            )
-        }
-    },
-    SelectMfaType: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Choose MFA Method
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Select your preferred multi-factor authentication method
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            return (
-                <div
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#64748b',
-                        paddingTop: '0.5rem'
-                    }}
-                >
-                    Adding MFA significantly enhances your account security
-                </div>
-            )
-        }
-    },
-    SetupEmail: {
-        Header() {
-            return (
-                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                    <Heading
-                        level={3}
-                        style={{
-                            marginBottom: '0.5rem',
-                            textAlign: 'center',
-                            fontWeight: '700',
-                            color: '#0f172a'
-                        }}
-                    >
-                        Email MFA Setup
-                    </Heading>
-                    <Text
-                        style={{
-                            textAlign: 'center',
-                            fontSize: '0.9rem',
-                            color: '#475569',
-                            marginBottom: '1rem'
-                        }}
-                    >
-                        Verification codes will be sent to your email
-                    </Text>
-                </div>
-            )
-        },
-        Footer() {
-            return (
-                <div
-                    style={{
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#64748b',
-                        paddingTop: '0.5rem'
-                    }}
-                >
-                    Make sure you have access to your email before proceeding
-                </div>
-            )
+        try {
+            if (mode === 'login') {
+                const res = await login(email, password)
+                if (res.success) {
+                    showSuccess(`Chào mừng ${res.user?.full_name || res.user?.email}`, 'Đăng nhập thành công')
+                    navigate('/dashboard')
+                } else {
+                    showError(res.message || 'Đăng nhập thất bại', 'Lỗi xác thực')
+                }
+            } else {
+                const res = await activate(email, password)
+                if (res.success) {
+                    showSuccess('Đã đặt mật khẩu. Bạn có thể đăng nhập.', 'Kích hoạt thành công')
+                    setMode('login')
+                    setPassword('')
+                } else {
+                    showError(res.message || 'Kích hoạt thất bại', 'Lỗi')
+                }
+            }
+        } finally {
+            setIsSubmitting(false)
         }
     }
-}
 
-export { components, customStyles }
+    return (
+        <div className="flex min-h-[100dvh] bg-bg text-text">
+            <div className="hidden flex-col justify-between border-r border-border bg-surface p-12 lg:flex lg:w-1/2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-card border border-border bg-white p-1.5">
+                            <img src={ptitLogo} alt="PTIT" className="h-full w-full object-contain" />
+                        </div>
+                        <div>
+                            <div className="text-sm font-semibold text-text">PTIT Attendance System</div>
+                            <div className="text-xs text-text-tertiary">Học viện Công nghệ Bưu chính Viễn thông</div>
+                        </div>
+                    </div>
+                    <ThemeToggle />
+                </div>
+
+                <div className="my-auto max-w-md space-y-6">
+                    <div className="inline-flex items-center gap-2 rounded-chip border border-border px-3 py-1.5 text-xs text-text-secondary">
+                        <RiFingerprintLine className="h-4 w-4" />
+                        AI Biometric Attendance Platform
+                    </div>
+
+                    <h1 className="text-3xl font-semibold leading-tight tracking-tight text-text">
+                        Hệ thống điểm danh bằng nhận diện khuôn mặt
+                    </h1>
+
+                    <p className="text-sm leading-relaxed text-text-secondary">
+                        Tự động nhận diện sinh viên qua camera ESP32-CAM và AWS Rekognition, đồng bộ dữ liệu thời gian
+                        thực qua WebSocket và lưu trữ an toàn trên AWS S3.
+                    </p>
+
+                    <div className="space-y-3 pt-2">
+                        {HIGHLIGHTS.map((text) => (
+                            <div key={text} className="flex items-center gap-3 text-sm text-text-secondary">
+                                <HiOutlineCheckCircle className="h-4 w-4 shrink-0 text-present" />
+                                <span>{text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="font-data text-xs text-text-tertiary">© 2024-2025 NCKH D22CQCI01-N · PTIT</div>
+            </div>
+
+            <div className="flex w-full items-center justify-center p-6 lg:w-1/2 sm:p-12">
+                <div className="w-full max-w-sm space-y-6">
+                    <div className="mb-2 flex items-center justify-between lg:hidden">
+                        <div className="flex items-center gap-2.5">
+                            <img src={ptitLogo} alt="PTIT" className="h-8 w-8 rounded-card border border-border bg-white object-contain p-1" />
+                            <span className="text-sm font-semibold text-text">PTIT Attendance</span>
+                        </div>
+                        <ThemeToggle />
+                    </div>
+
+                    <div className="space-y-6 rounded-card border border-border bg-surface p-6 sm:p-8">
+                        <div className="flex rounded-card border border-border bg-surface-sunken p-1">
+                            <button
+                                type="button"
+                                onClick={() => setMode('login')}
+                                className={`flex-1 rounded-card py-2 text-xs font-semibold transition-colors ${
+                                    mode === 'login' ? 'bg-accent text-accent-foreground' : 'text-text-secondary hover:text-text'
+                                }`}
+                            >
+                                Đăng nhập
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMode('activate')}
+                                className={`flex-1 rounded-card py-2 text-xs font-semibold transition-colors ${
+                                    mode === 'activate' ? 'bg-accent text-accent-foreground' : 'text-text-secondary hover:text-text'
+                                }`}
+                            >
+                                Kích hoạt tài khoản
+                            </button>
+                        </div>
+
+                        <div>
+                            <h2 className="text-lg font-semibold text-text">
+                                {mode === 'login' ? 'Đăng nhập vào hệ thống' : 'Kích hoạt tài khoản'}
+                            </h2>
+                            <p className="mt-1 text-xs text-text-secondary">
+                                {mode === 'login'
+                                    ? 'Nhập thông tin xác thực để truy cập hệ thống'
+                                    : 'Dành cho giáo viên đã có trong hệ thống nhưng chưa đặt mật khẩu'}
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <Field label="Email trường" required>
+                                <div className="relative">
+                                    <HiOutlineMail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+                                    <Input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="teacher@ptit.edu.vn"
+                                        className="pl-9"
+                                    />
+                                </div>
+                            </Field>
+
+                            <Field label={mode === 'login' ? 'Mật khẩu' : 'Mật khẩu mới'} required>
+                                <div className="relative">
+                                    <HiOutlineLockClosed className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+                                    <Input
+                                        type={showPassword ? 'text' : 'password'}
+                                        required
+                                        minLength={8}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        className="pl-9 pr-9"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword((v) => !v)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <HiEyeOff className="h-4 w-4" /> : <HiEye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </Field>
+
+                            <Button type="submit" loading={isSubmitting} className="w-full" size="lg">
+                                {mode === 'login' ? 'Đăng nhập' : 'Đặt mật khẩu'}
+                            </Button>
+                        </form>
+                    </div>
+
+                    <div className="text-center text-xs text-text-tertiary">
+                        <Link to="/" className="hover:text-text-secondary">
+                            ← Quay lại trang giới thiệu
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}

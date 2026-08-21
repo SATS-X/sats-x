@@ -1,27 +1,19 @@
-import { fetchUserAttributes } from 'aws-amplify/auth'
-import { useEffect, useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
-async function getUserAttributes() {
-    const user = await fetchUserAttributes()
-    return user
-}
-
+/**
+ * Hook to retrieve current user attributes from AuthContext
+ */
 const useUserAttributes = () => {
-    const [userAttributes, setUserAttributes] = useState(null)
+    const { user } = useAuth()
+    if (!user) return null
 
-    useEffect(() => {
-        const fetchAttributes = async () => {
-            try {
-                const attributes = await getUserAttributes()
-                setUserAttributes(attributes)
-            } catch (error) {
-                console.error('Failed to fetch user attributes:', error)
-            }
-        }
-        fetchAttributes()
-    }, [])
-
-    return userAttributes
+    return {
+        sub: user.userId || user.id || user.email,
+        email: user.email,
+        name: user.fullName || user.email,
+        preferred_username: user.email?.split('@')[0],
+        role: user.role
+    }
 }
 
 export default useUserAttributes

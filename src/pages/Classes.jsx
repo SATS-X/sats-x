@@ -1,496 +1,264 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import {
     HiOutlinePlus,
-    HiOutlineSearch,
+    HiOutlineRefresh,
     HiOutlinePencil,
     HiOutlineTrash,
-    HiOutlineX,
     HiOutlineUsers
 } from 'react-icons/hi'
-import { getAllClasses, createClass, updateClass, deleteClass } from '../api/class/classApi'
+import { RiFingerprintLine } from 'react-icons/ri'
+import { getClasses, createClass, updateClass, deleteClass } from '../api/class/getClasses'
+import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
-import Modal from 'react-modal'
+import { Badge, Button, EmptyState, Field, Input, Modal, PageHeader, SearchInput, Spinner, StatusChip } from '../components/ui'
 
-const Classes = () => {
-    const [classes, setClasses] = useState([])
-    const [loading, setLoading] = useState(false)
-    const [searchTerm, setSearchTerm] = useState('')
+export default function Classes() {
+    const { t } = useLanguage()
     const { showSuccess, showError } = useToast()
 
-    // Modal states
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [classes, setClasses] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState('')
+
+    const [modalMode, setModalMode] = useState(null) // 'create' | 'edit' | 'delete'
     const [selectedClass, setSelectedClass] = useState(null)
+    const [formData, setFormData] = useState({ class_id: '', name: '' })
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Form states
-    const [formData, setFormData] = useState({
-        class_id: '',
-        name: '',
-        number_of_students: 0,
-        status: 1
-    })
-
-    const loadClasses = async () => {
+    const fetchClasses = async () => {
         setLoading(true)
         try {
-            const response = await getAllClasses()
-            setClasses(response.data || [])
-        } catch (error) {
-            showError(error.message || 'Không thể tải danh sách lớp', 'Lỗi')
+            const res = await getClasses()
+            setClasses(Array.isArray(res?.data) ? res.data : [])
+        } catch (err) {
+            showError(err.message || 'Không thể tải danh sách lớp', 'Lỗi')
         } finally {
             setLoading(false)
         }
     }
 
     useEffect(() => {
-        loadClasses()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchClasses()
     }, [])
 
-    const filteredClasses = classes.filter(
-        (cls) =>
-            cls.class_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            cls.class_id?.toString().includes(searchTerm)
-    )
-
-    const handleOpenCreateModal = () => {
-        setFormData({ class_id: '', name: '', number_of_students: 0, status: 1 })
-        setIsCreateModalOpen(true)
-    }
-
-    const handleOpenEditModal = (cls) => {
-        setSelectedClass(cls)
-        setFormData({
-            class_id: cls.class_id,
-            name: cls.class_name,
-            number_of_students: cls.number_of_students,
-            status: cls.status
-        })
-        setIsEditModalOpen(true)
-    }
-
-    const handleOpenDeleteModal = (cls) => {
-        setSelectedClass(cls)
-        setIsDeleteModalOpen(true)
-    }
-
-    const handleCloseModals = () => {
-        setIsCreateModalOpen(false)
-        setIsEditModalOpen(false)
-        setIsDeleteModalOpen(false)
+    const handleOpenCreate = () => {
+        setFormData({ class_id: '', name: '' })
         setSelectedClass(null)
-        setFormData({ class_id: '', name: '', number_of_students: 0, status: 1 })
+        setModalMode('create')
     }
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target
-        setFormData((prev) => ({
-            ...prev,
-            [name]: name === 'number_of_students' ? parseInt(value) || 0 : name === 'status' ? parseInt(value) : value
-        }))
+    const handleOpenEdit = (cls) => {
+        setSelectedClass(cls)
+        setFormData({ class_id: cls.class_id, name: cls.class_name || '' })
+        setModalMode('edit')
     }
 
-    const handleCreateClass = async (e) => {
+    const handleOpenDelete = (cls) => {
+        setSelectedClass(cls)
+        setModalMode('delete')
+    }
+
+    const handleSubmitForm = async (e) => {
         e.preventDefault()
-        if (!formData.class_id.trim()) {
-            showError('Mã lớp không được để trống', 'Lỗi')
-            return
-        }
-        if (!formData.name.trim()) {
-            showError('Tên lớp không được để trống', 'Lỗi')
-            return
-        }
-
         setIsSubmitting(true)
         try {
-            // Ensure number_of_students is 0 for new class
-            const dataToSubmit = {
-                ...formData,
-                number_of_students: 0
+            if (modalMode === 'create') {
+                await createClass(formData)
+                showSuccess('Đã thêm lớp học mới', 'Thành công')
+            } else if (modalMode === 'edit') {
+                await updateClass(selectedClass.class_id, formData)
+                showSuccess('Đã cập nhật thông tin lớp', 'Thành công')
             }
-            await createClass(dataToSubmit)
-            showSuccess('Tạo lớp học thành công', 'Thành công')
-            handleCloseModals()
-            loadClasses()
-        } catch (error) {
-            showError(error.message || 'Không thể tạo lớp học', 'Lỗi')
+            setModalMode(null)
+            fetchClasses()
+        } catch (err) {
+            showError(err.response?.data?.message || err.message || 'Thao tác thất bại', 'Lỗi')
         } finally {
             setIsSubmitting(false)
         }
     }
 
-    const handleUpdateClass = async (e) => {
-        e.preventDefault()
-        if (!formData.name.trim()) {
-            showError('Tên lớp không được để trống', 'Lỗi')
-            return
-        }
-
-        setIsSubmitting(true)
-        try {
-            await updateClass(selectedClass.class_id, formData)
-            showSuccess('Cập nhật lớp học thành công', 'Thành công')
-            handleCloseModals()
-            loadClasses()
-        } catch (error) {
-            showError(error.message || 'Không thể cập nhật lớp học', 'Lỗi')
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
-
-    const handleDeleteClass = async () => {
+    const handleDeleteConfirm = async () => {
+        if (!selectedClass) return
         setIsSubmitting(true)
         try {
             await deleteClass(selectedClass.class_id)
-            showSuccess('Xóa lớp học thành công', 'Thành công')
-            handleCloseModals()
-            loadClasses()
-        } catch (error) {
-            if (error.data?.student_count > 0) {
-                showError(
-                    `Không thể xóa lớp có ${error.data.student_count} sinh viên. Vui lòng xóa sinh viên trước.`,
-                    'Lỗi'
-                )
-            } else {
-                showError(error.message || 'Không thể xóa lớp học', 'Lỗi')
-            }
+            showSuccess('Đã xóa lớp học', 'Thành công')
+            setModalMode(null)
+            fetchClasses()
+        } catch (err) {
+            showError(err.response?.data?.message || err.message || 'Không thể xóa lớp', 'Lỗi')
         } finally {
             setIsSubmitting(false)
         }
     }
 
+    const filteredClasses = classes.filter((cls) => {
+        const search = searchTerm.toLowerCase()
+        return !searchTerm || cls.class_id?.toLowerCase().includes(search) || cls.class_name?.toLowerCase().includes(search)
+    })
+
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Quản lý lớp học</h1>
-                    <p className="text-slate-600 mt-1">Quản lý thông tin các lớp học trong hệ thống</p>
-                </div>
-                <button
-                    onClick={handleOpenCreateModal}
-                    className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                    <HiOutlinePlus className="text-lg" />
-                    Thêm lớp học
-                </button>
-            </div>
+            <PageHeader
+                title={
+                    <span className="inline-flex items-center gap-2.5">
+                        {t('classesManagement')}
+                        <Badge>{filteredClasses.length} lớp</Badge>
+                    </span>
+                }
+                description={t('classesManagementDesc')}
+                actions={
+                    <>
+                        <Button variant="secondary" size="sm" onClick={fetchClasses}>
+                            <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                            Làm mới
+                        </Button>
+                        <Button size="sm" onClick={handleOpenCreate}>
+                            <HiOutlinePlus className="h-4 w-4" />
+                            Tạo lớp mới
+                        </Button>
+                    </>
+                }
+            />
 
-            {/* Search */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div className="relative">
-                    <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm lớp học..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                </div>
-            </div>
+            <SearchInput
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm kiếm theo mã lớp, tên lớp..."
+                className="max-w-md"
+            />
 
-            {/* Loading */}
-            {loading && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
-                    <div className="text-slate-600">Đang tải...</div>
+            {loading ? (
+                <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
+                    <Spinner size="sm" />
+                    Đang tải danh sách lớp học...
                 </div>
-            )}
-
-            {/* Classes Grid */}
-            {!loading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ) : filteredClasses.length === 0 ? (
+                <EmptyState title="Không tìm thấy lớp học nào" />
+            ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredClasses.map((cls) => (
-                        <div
-                            key={cls.class_id}
-                            className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-5"
-                        >
-                            {/* Header */}
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                                        <HiOutlineUsers className="text-xl text-slate-600" />
+                        <div key={cls.class_id} className="flex flex-col justify-between rounded-card border border-border bg-surface p-5">
+                            <div className="space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <h3 className="font-data truncate text-base font-semibold text-text">{cls.class_id}</h3>
+                                        <p className="mt-0.5 truncate text-xs text-text-secondary">{cls.class_name}</p>
+                                    </div>
+                                    <StatusChip variant={cls.status === 'active' || !cls.status ? 'active' : 'neutral'}>
+                                        {cls.status || 'active'}
+                                    </StatusChip>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 rounded-card border border-border bg-surface-sunken p-3 text-xs">
+                                    <div>
+                                        <span className="font-data text-[10px] uppercase text-text-tertiary">Sinh viên</span>
+                                        <div className="mt-0.5 flex items-center gap-1.5 font-medium text-text">
+                                            <HiOutlineUsers className="h-3.5 w-3.5 text-text-tertiary" />
+                                            {cls.actual_student_count ?? cls.number_of_students ?? 0}
+                                        </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-900">{cls.class_name}</h3>
-                                        <p className="text-sm text-slate-500">{cls.class_id}</p>
+                                        <span className="font-data text-[10px] uppercase text-text-tertiary">Rekognition</span>
+                                        <div className="mt-0.5 flex items-center gap-1.5 font-medium text-present">
+                                            <RiFingerprintLine className="h-3.5 w-3.5" />
+                                            Đã liên kết
+                                        </div>
                                     </div>
                                 </div>
-                                <span
-                                    className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                        cls.status === 1 || cls.status === 'active'
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : 'bg-slate-100 text-slate-600'
-                                    }`}
-                                >
-                                    {cls.status === 1 || cls.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-                                </span>
                             </div>
 
-                            {/* Stats */}
-                            <div className="space-y-2 mb-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-slate-600">Sĩ số</span>
-                                    <span className="font-semibold text-slate-900">{cls.number_of_students}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-slate-600">Hiện tại</span>
-                                    <span className="font-semibold text-emerald-600">{cls.actual_student_count}</span>
-                                </div>
-                            </div>
+                            <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3">
+                                <Link
+                                    to="/face-management"
+                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
+                                >
+                                    <RiFingerprintLine className="h-3.5 w-3.5" />
+                                    Quản lý khuôn mặt
+                                </Link>
 
-                            {/* Actions */}
-                            <div className="flex gap-2 pt-4 border-t border-slate-200">
-                                <button
-                                    onClick={() => handleOpenEditModal(cls)}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm"
-                                >
-                                    <HiOutlinePencil />
-                                    Sửa
-                                </button>
-                                <button
-                                    onClick={() => handleOpenDeleteModal(cls)}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm"
-                                >
-                                    <HiOutlineTrash />
-                                    Xóa
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => handleOpenEdit(cls)}
+                                        title="Chỉnh sửa"
+                                        className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text"
+                                    >
+                                        <HiOutlinePencil className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleOpenDelete(cls)}
+                                        title="Xóa lớp"
+                                        className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
+                                    >
+                                        <HiOutlineTrash className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Empty State */}
-            {!loading && filteredClasses.length === 0 && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
-                    <HiOutlineUsers className="mx-auto h-12 w-12 text-slate-400 mb-4" />
-                    <p className="text-slate-600">
-                        {searchTerm ? 'Không tìm thấy lớp học nào' : 'Chưa có lớp học nào'}
-                    </p>
-                </div>
-            )}
-
-            {/* Create Modal */}
             <Modal
-                isOpen={isCreateModalOpen}
-                onRequestClose={handleCloseModals}
-                className="fixed inset-0 flex items-center justify-center p-4 z-50"
-                overlayClassName="fixed inset-0 bg-black bg-opacity-50 z-40"
-                ariaHideApp={false}
+                isOpen={modalMode === 'create' || modalMode === 'edit'}
+                onClose={() => setModalMode(null)}
+                title={modalMode === 'create' ? 'Tạo lớp học mới' : 'Chỉnh sửa lớp học'}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setModalMode(null)}>
+                            Hủy
+                        </Button>
+                        <Button type="submit" form="class-form" loading={isSubmitting}>
+                            Lưu thông tin
+                        </Button>
+                    </>
+                }
             >
-                <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                        <h2 className="text-xl font-bold text-slate-900">Thêm lớp học mới</h2>
-                        <button onClick={handleCloseModals} className="text-slate-400 hover:text-slate-600">
-                            <HiOutlineX className="text-2xl" />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleCreateClass} className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Mã lớp <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="class_id"
-                                value={formData.class_id}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Ví dụ: D22CQCI01-N"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Tên lớp <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Ví dụ: Internet Vạn Vật"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Sĩ số <span className="text-slate-500 text-xs">(Mặc định: 0)</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="number_of_students"
-                                value={0}
-                                disabled
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-500 cursor-not-allowed"
-                            />
-                            <p className="text-xs text-slate-500 mt-1">Sĩ số sẽ tự động cập nhật khi thêm sinh viên</p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái</label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            >
-                                <option value={1}>Hoạt động</option>
-                                <option value={0}>Không hoạt động</option>
-                            </select>
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
-                            <button
-                                type="button"
-                                onClick={handleCloseModals}
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                            >
-                                {isSubmitting ? 'Đang tạo...' : 'Tạo lớp'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                <form id="class-form" onSubmit={handleSubmitForm} className="space-y-4">
+                    <Field label="Mã lớp" required>
+                        <Input
+                            required
+                            disabled={modalMode === 'edit'}
+                            value={formData.class_id}
+                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                            placeholder="Ví dụ: D22CQCI01-N"
+                            className="font-data"
+                        />
+                    </Field>
+                    <Field label="Tên lớp" required>
+                        <Input
+                            required
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="Ví dụ: Công nghệ Thông tin 01 CLC"
+                        />
+                    </Field>
+                </form>
             </Modal>
 
-            {/* Edit Modal */}
             <Modal
-                isOpen={isEditModalOpen}
-                onRequestClose={handleCloseModals}
-                className="fixed inset-0 flex items-center justify-center p-4 z-50"
-                overlayClassName="fixed inset-0 bg-black bg-opacity-50 z-40"
-                ariaHideApp={false}
+                isOpen={modalMode === 'delete'}
+                onClose={() => setModalMode(null)}
+                title="Xác nhận xóa lớp"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setModalMode(null)}>
+                            Hủy
+                        </Button>
+                        <Button variant="danger" onClick={handleDeleteConfirm} loading={isSubmitting}>
+                            Xác nhận xóa
+                        </Button>
+                    </>
+                }
             >
-                <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                        <h2 className="text-xl font-bold text-slate-900">Chỉnh sửa lớp học</h2>
-                        <button onClick={handleCloseModals} className="text-slate-400 hover:text-slate-600">
-                            <HiOutlineX className="text-2xl" />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleUpdateClass} className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Tên lớp <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Sĩ số</label>
-                            <input
-                                type="number"
-                                name="number_of_students"
-                                value={formData.number_of_students}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                min="0"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái</label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            >
-                                <option value={1}>Hoạt động</option>
-                                <option value={0}>Không hoạt động</option>
-                            </select>
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
-                            <button
-                                type="button"
-                                onClick={handleCloseModals}
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                            >
-                                {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </Modal>
-
-            {/* Delete Modal */}
-            <Modal
-                isOpen={isDeleteModalOpen}
-                onRequestClose={handleCloseModals}
-                className="fixed inset-0 flex items-center justify-center p-4 z-50"
-                overlayClassName="fixed inset-0 bg-black bg-opacity-50 z-40"
-                ariaHideApp={false}
-            >
-                <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-                    <div className="p-6">
-                        <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-                            <HiOutlineTrash className="text-2xl text-red-600" />
-                        </div>
-
-                        <h3 className="text-lg font-bold text-slate-900 text-center mb-2">Xác nhận xóa lớp học</h3>
-
-                        {selectedClass && (
-                            <p className="text-slate-600 text-center mb-6">
-                                Bạn có chắc chắn muốn xóa lớp <strong>{selectedClass.class_name}</strong>?
-                                <br />
-                                <span className="text-red-600 text-sm">Hành động này không thể hoàn tác.</span>
-                            </p>
-                        )}
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleCloseModals}
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                onClick={handleDeleteClass}
-                                disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                                {isSubmitting ? 'Đang xóa...' : 'Xóa'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <p className="text-sm text-text-secondary">
+                    Bạn có chắc chắn muốn xóa lớp{' '}
+                    <span className="font-data font-semibold text-text">{selectedClass?.class_id}</span>? Thao tác này
+                    không thể hoàn tác.
+                </p>
             </Modal>
         </div>
     )
 }
-
-export default Classes
