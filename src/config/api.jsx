@@ -3,9 +3,11 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
 // Live AWS WebSocket URL for attendance and face management
+// Lấy từ `terraform output websocket_url` (attendance-system-infra) — đổi mỗi lần
+// API Gateway được tạo lại.
 export const WS_URL =
     import.meta.env.VITE_WS_URL ||
-    'wss://ya0rgv5xbd.execute-api.ap-southeast-1.amazonaws.com/production'
+    'wss://7i91rxj536.execute-api.ap-southeast-1.amazonaws.com/production'
 
 export const WS_ATTENDANCE_URL = WS_URL
 export const WS_FACE_MANAGEMENT_URL = WS_URL
