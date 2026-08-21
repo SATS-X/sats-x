@@ -4,6 +4,13 @@ dist/
 # Secret thật, không phải placeholder
 .env
 
+# AWS Amplify (no longer used)
+.amplify/
+amplify_outputs.json
+
+# IDE config
+.vscode/
+
 # Cache skill của công cụ AI hỗ trợ code, không phải mã nguồn dự án
 .agents/
 .claude/
