@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HiOutlineDownload, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi'
+import { HiOutlineDownload, HiOutlineRefresh, HiOutlineEye, HiOutlineCamera } from 'react-icons/hi'
 import { getAllAttendance } from '../api/attendance/getAttendance'
 import { getClasses } from '../api/class/getClasses'
 import { useWebSocket } from '../contexts/WebSocketContext'
@@ -30,7 +30,8 @@ const REMARK_LABEL = { 'On Time': 'Đúng giờ', Late: 'Trễ', Absent: 'Vắng
 export default function Attendance() {
     const { t } = useLanguage()
     const { showInfo, showError } = useToast()
-    const { subscribe, isConnected } = useWebSocket()
+    const { subscribe, sendMessage, isConnected } = useWebSocket()
+    const [triggering, setTriggering] = useState(false)
 
     const [attendanceData, setAttendanceData] = useState([])
     const [classesList, setClassesList] = useState([])
@@ -63,31 +64,40 @@ export default function Attendance() {
         fetchAttendanceData()
     }, [])
 
-    useEffect(() => {
-        const unsubscribe = subscribe('compare', (data) => {
-            const result = data?.attendance_result
-            const face = data?.face_compare_result
-            if (data?.status !== 'success' || !face?.match_found) return
+    // Lambda "compare" chỉ trả lời về đúng connection đã gửi yêu cầu compare —
+    // tức connection của THIẾT BỊ, không phải của trình duyệt đang mở trang này.
+    // Vì vậy không có cách nào nhận kết quả "trực tiếp" qua WebSocket ở đây; xác
+    // nhận trung thực hơn là gửi lệnh xong rồi tải lại bảng sau vài giây, đọc
+    // đúng dữ liệu thật mà /api/device/attendance vừa ghi vào DB.
+    const handleTriggerCapture = () => {
+        setTriggering(true)
 
-            const now = new Date()
-            setAttendanceData((prev) => [
-                {
-                    student_id: face.external_id,
-                    student_name: face.user_name,
-                    class_names: result?.class_name || null,
-                    time: now.toTimeString().slice(0, 5),
-                    day: now.getDate(),
-                    month: now.getMonth() + 1,
-                    year: now.getFullYear(),
-                    day_of_week: now.toLocaleDateString('en-US', { weekday: 'long' }),
-                    status: 1,
-                    remark: result?.attendance_details?.remark || 'On Time'
-                },
-                ...prev
-            ])
+        // An toàn: nếu 8s không có phản hồi (Lambda lỗi, không post_to_connection
+        // được...), tự tắt trạng thái loading thay vì treo nút mãi mãi.
+        const safetyTimer = setTimeout(() => {
+            unsubscribe()
+            setTriggering(false)
+        }, 8000)
+
+        const unsubscribe = subscribe('triggerCapture', (data) => {
+            clearTimeout(safetyTimer)
+            unsubscribe()
+            setTriggering(false)
+            if (data?.status === 'success') {
+                showSuccess(data.message || 'Đã gửi lệnh chụp ảnh tới thiết bị', 'Kích hoạt camera')
+                setTimeout(fetchAttendanceData, 6000)
+            } else {
+                showError(data?.message || 'Không gửi được lệnh tới thiết bị', 'Lỗi')
+            }
         })
-        return () => unsubscribe()
-    }, [subscribe])
+
+        const sent = sendMessage({ action: 'triggerCapture' })
+        if (!sent) {
+            clearTimeout(safetyTimer)
+            unsubscribe()
+            setTriggering(false)
+        }
+    }
 
     const filteredData = useMemo(() => {
         return attendanceData.filter((item) => {
@@ -141,6 +151,16 @@ export default function Attendance() {
                         <Button variant="secondary" size="sm" onClick={fetchAttendanceData}>
                             <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
                             Làm mới
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={!isConnected || triggering}
+                            onClick={handleTriggerCapture}
+                            title={isConnected ? undefined : 'WebSocket chưa kết nối tới AWS Gateway'}
+                        >
+                            <HiOutlineCamera className={triggering ? 'h-4 w-4 animate-pulse' : 'h-4 w-4'} />
+                            {triggering ? 'Đang gửi lệnh...' : 'Chụp ảnh ngay'}
                         </Button>
                         <Button size="sm" onClick={exportCSV}>
                             <HiOutlineDownload className="h-4 w-4" />
