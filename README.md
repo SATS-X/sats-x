@@ -13,22 +13,22 @@
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
-- [Application Architecture](#-application-architecture)
-- [Real-Time WebSocket & S3 Upload Workflow](#-real-time-websocket--s3-upload-workflow)
+- [Application Architecture](#application-architecture)
+- [Real-Time WebSocket & S3 Upload Workflow](#real-time-websocket--s3-upload-workflow)
   - [Presigned S3 Direct Enrollment Flow](#presigned-s3-direct-enrollment-flow)
   - [Resilient Single-Socket Management](#resilient-single-socket-management)
-- [Key Modules & User Interfaces](#-key-modules--user-interfaces)
-- [SATS X Design System](#-sats-x-design-system)
-- [Local Development & Quickstart](#-local-development--quickstart)
-- [Production Deployment (EC2 & Nginx Reverse Proxy)](#-production-deployment-ec2--nginx-reverse-proxy)
-- [Environment Configuration Reference](#-environment-configuration-reference)
-- [Part of the Ecosystem](#-part-of-the-ecosystem)
+- [Key Modules & User Interfaces](#key-modules--user-interfaces)
+- [SATS X Design System](#sats-x-design-system)
+- [Local Development & Quickstart](#local-development--quickstart)
+- [Production Deployment (EC2 & Nginx Reverse Proxy)](#production-deployment-ec2--nginx-reverse-proxy)
+- [Environment Configuration Reference](#environment-configuration-reference)
+- [Part of the Ecosystem](#part-of-the-ecosystem)
 
 ---
 
-## 🏛 Application Architecture
+## Application Architecture
 
 The frontend application follows a clean modular hierarchy separating UI components, state management contexts, domain API services, and WebSocket listeners:
 
@@ -75,7 +75,7 @@ flowchart TD
 
 ---
 
-## ⚡ Real-Time WebSocket & S3 Upload Workflow
+## Real-Time WebSocket & S3 Upload Workflow
 
 ### Presigned S3 Direct Enrollment Flow
 
@@ -119,7 +119,7 @@ sequenceDiagram
 
 ---
 
-## 🖥 Key Modules & User Interfaces
+## Key Modules & User Interfaces
 
 | Page / Route | Core Capabilities |
 |:---|:---|
@@ -145,7 +145,7 @@ sequenceDiagram
 
 ---
 
-## 💻 Local Development & Quickstart
+## Local Development & Quickstart
 
 ### Prerequisites
 - **Node.js**: v18.0.0 or later
@@ -183,7 +183,7 @@ Use an instructor account provisioned by the SATS X backend. Activate invited ac
 
 ---
 
-## 🚀 Production Deployment (EC2 & Nginx Reverse Proxy)
+## Production Deployment (EC2 & Nginx Reverse Proxy)
 
 In production, the frontend is compiled into optimized static assets and served via an **Nginx Reverse Proxy** co-located on the same EC2 instance as the backend.
 
@@ -223,7 +223,7 @@ flowchart LR
 
 ---
 
-## ⚙️ Environment Configuration Reference
+## Environment Configuration Reference
 
 | Variable | Type | Default / Example | Purpose |
 |:---|:---|:---|:---|
@@ -237,7 +237,7 @@ flowchart LR
 
 ---
 
-## 🧩 Part of the Ecosystem
+## Part of the Ecosystem
 
 | Repository | Primary Technology | Responsibility |
 |:---|:---|:---|
