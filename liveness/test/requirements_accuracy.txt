@@ -1,0 +1,20 @@
+# Requirements for Accuracy Checker
+# Các thư viện cần thiết để chạy kiểm tra độ chính xác
+
+# Core ML libraries
+tensorflow
+numpy
+opencv-python
+
+# Data visualization
+matplotlib
+seaborn
+
+# Machine learning metrics
+scikit-learn
+
+# Image processing
+Pillow
+
+# Utilities
+pathlib2

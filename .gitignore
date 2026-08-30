@@ -1,19 +1,47 @@
-node_modules/
-dist/
+# Local repository metadata preserved during the monorepo migration
+.component-git-backups/
 
-# Secret thật, không phải placeholder
-.env
-.env.production
-
-# AWS Amplify (no longer used)
-.amplify/
-amplify_outputs.json
-
-# IDE config
-.vscode/
-
-# Cache skill của công cụ AI hỗ trợ code, không phải mã nguồn dự án
-.agents/
+# AI and editor workspace files
 .claude/
-.windsurf/
-skills-lock.json
+**/.agents/
+**/.claude/
+**/.windsurf/
+**/.vscode/
+**/.impeccable/
+**/skills-lock.json
+
+# Dependencies and build output
+**/node_modules/
+**/dist/
+**/build/
+**/.cache/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/venv/
+**/.venv/
+
+# Local environment and credentials
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+**/*.pem
+**/*.key
+**/*.crt
+
+# Terraform generated state and packages
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform.lock.hcl
+**/modules/lambda-function/.build/
+
+# PlatformIO generated files
+**/.pio/
+
+# macOS
+.DS_Store
+**/.DS_Store

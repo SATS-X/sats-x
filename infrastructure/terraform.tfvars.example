@@ -1,0 +1,18 @@
+project     = "attendance-system"
+environment = "dev"
+aws_region  = "ap-southeast-1"
+aws_profile = "default"
+
+# Origin của frontend được phép PUT ảnh thẳng lên S3 bằng presigned URL
+# (route getUploadUrl). Thiếu origin production ở đây thì trình duyệt chặn PUT
+# vì CORS, và AddFaceModal sẽ tự rơi về đường dự phòng gửi ảnh nén qua WebSocket.
+cors_allowed_origins = ["http://localhost:5173", "http://52.220.6.142"]
+
+class_ids = ["D22CQCI01-N", "D22CQCI01-B", "D22CQVT01-N"]
+
+face_match_threshold = 95
+
+backend_api_url = "http://localhost:3000"
+
+# Pass sensitive values via environment variable:
+# export TF_VAR_backend_service_token="your-token-here"

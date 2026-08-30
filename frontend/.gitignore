@@ -1,0 +1,19 @@
+node_modules/
+dist/
+
+# Secret thật, không phải placeholder
+.env
+.env.production
+
+# AWS Amplify (no longer used)
+.amplify/
+amplify_outputs.json
+
+# IDE config
+.vscode/
+
+# Cache skill của công cụ AI hỗ trợ code, không phải mã nguồn dự án
+.agents/
+.claude/
+.windsurf/
+skills-lock.json

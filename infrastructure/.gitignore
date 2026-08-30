@@ -1,0 +1,20 @@
+# Provider binary cache (tương đương node_modules — nhị phân, tự tải lại bằng `terraform init`)
+.terraform/
+
+# State chứa secret thật ở dạng plaintext (kể cả output đánh dấu sensitive) — giờ
+# đã chuyển lên S3 (mã hoá + versioning), không lưu cục bộ nữa. Xem README.
+*.tfstate
+*.tfstate.*
+
+# Giá trị thật của backend_service_token nếu ai đó lỡ điền vào đây — mẫu ở
+# terraform.tfvars.example
+terraform.tfvars
+*.auto.tfvars
+
+# Private key SSH thật, sinh ra từ `terraform output -raw backend_ssh_key` — dùng
+# để SSH vào EC2 backend. Tuyệt đối không commit.
+*.pem
+
+# Bytecode cache khi test cú pháp Lambda cục bộ (python3 -m py_compile)
+__pycache__/
+*.pyc

@@ -1,0 +1,17 @@
+LIVENESS DETECTION MODEL EVALUATION REPORT
+==================================================
+
+              precision    recall  f1-score   support
+
+        Fake       0.94      0.77      0.85      1000
+        Real       0.81      0.95      0.87      1000
+
+    accuracy                           0.86      2000
+   macro avg       0.87      0.86      0.86      2000
+weighted avg       0.87      0.86      0.86      2000
+
+
+Model Information:
+- Input Shape: (96, 96, 3)
+- Total Samples: 2000
+- Average Processing Time: 0.0967s

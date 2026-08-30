@@ -1,0 +1,11 @@
+# Build cache PlatformIO (tương đương node_modules — nhị phân, tự sinh lại bằng `pio run`)
+.pio
+compile_commands.json
+.cache/
+
+# Private key/certificate AWS IoT thật — không phải placeholder. PlatformIO copy
+# vào cả include/ khi index dự án nên phải chặn cả hai vị trí.
+lib/secrets
+include/secrets_esp32.h
+include/secrets_esp32-cam.h
+include/aws_root_ca.h
