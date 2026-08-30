@@ -31,7 +31,7 @@ const Modal = ({ isOpen, onClose, title, description, size = 'md', children, foo
             <button
                 type="button"
                 onClick={onClose}
-                aria-label="Đóng"
+                aria-label="Close"
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-card text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text"
             >
                 <HiOutlineX className="h-4 w-4" />

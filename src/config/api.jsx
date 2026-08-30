@@ -1,6 +1,8 @@
 // API & WebSocket Configuration
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
+// "" là giá trị hợp lệ (production build sau nginx reverse-proxy /api, cùng
+// origin) nên dùng ?? thay vì || — || sẽ coi "" là falsy và rơi về fallback sai.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
 // Live AWS WebSocket URL for attendance and face management
 // Lấy từ `terraform output websocket_url` (attendance-system-infra) — đổi mỗi lần

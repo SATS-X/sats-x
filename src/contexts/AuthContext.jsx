@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
             return {
                 success: false,
-                message: err.response?.data?.message || err.message || 'Kích hoạt thất bại'
+                message: err.response?.data?.message || err.message || 'Account activation failed'
             }
         }
     }

@@ -4,8 +4,8 @@ import classNames from 'classnames'
 import { HiOutlineRefresh } from 'react-icons/hi'
 
 const VARIANTS = {
-    primary: 'bg-accent text-accent-foreground hover:bg-accent-hover',
-    secondary: 'border border-border bg-surface text-text hover:bg-surface-hover',
+    primary: 'brand-gradient surface-glow text-white hover:brightness-105',
+    secondary: 'border border-border bg-surface/80 text-text hover:border-accent/40 hover:bg-surface-hover',
     ghost: 'text-text-secondary hover:bg-surface-hover hover:text-text',
     danger: 'border border-danger/30 bg-surface text-danger hover:bg-danger/10'
 }
@@ -23,7 +23,7 @@ const Button = forwardRef(
                 ref={ref}
                 disabled={disabled || loading}
                 className={classNames(
-                    'inline-flex items-center justify-center whitespace-nowrap rounded-card font-medium transition-colors',
+                    'inline-flex items-center justify-center whitespace-nowrap rounded-card font-medium transition-all duration-200 active:scale-[0.98]',
                     'disabled:cursor-not-allowed disabled:opacity-50',
                     VARIANTS[variant],
                     SIZES[size],

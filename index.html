@@ -1,22 +1,19 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <link rel="icon" type="image/png" href="/src/assets/images/ptit-bg.png" />
+        <link rel="icon" type="image/svg+xml" href="/sats-x.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <meta name="color-scheme" content="light dark" />
-        <title>PTIT Attendance System</title>
-        <meta name="description" content="Hệ thống điểm danh sinh viên bằng nhận diện khuôn mặt — PTIT, đồ án NCKH 2024-2025" />
+        <title>SATS X — Intelligent Attendance</title>
+        <meta name="description" content="SATS X is an intelligent biometric attendance platform for connected classrooms." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
             rel="stylesheet"
         />
-        <!--
-          Chặn nháy sai theme: đọc lựa chọn đã lưu (hoặc prefers-color-scheme)
-          và gắn class trước khi React mount, để lần vẽ đầu tiên đã đúng theme.
-        -->
+        <!-- Apply the saved theme before React mounts to avoid a flash. -->
         <script>
             (function () {
                 try {
@@ -35,25 +32,8 @@
         </script>
     </head>
     <body>
-        <!--
-          DIRECTION CONTRACT
-          THESIS: Dữ liệu điểm danh đọc như hồ sơ trên hệ thống thẻ định danh/ra-vào — mỗi
-            hàng dữ liệu là một thẻ cố định (khung ảnh, tên, mã mono, dải trạng thái ở cạnh),
-            từ chối khuôn mẫu dashboard kính mờ/gradient trước đây.
-          OWN-WORLD: Nền giấy trung tính (light) / than chì (dark); một accent xanh lam duy
-            nhất cho hành động chính, màu trạng thái (present/late/absent) chỉ sống trong dải
-            hẹp ở cạnh thẻ. IBM Plex Sans cho tên/nhãn, IBM Plex Mono (tabular-nums) cho mã số/
-            giờ/phần trăm. Viền hairline 1px, bo góc vừa phải, không glass/blur/gradient.
-          STORY: Giáo viên mở app thấy ngay dữ liệu đáng tin cậy như một hệ thống thẻ ra-vào
-            thật; mỗi sinh viên là một thẻ nhận diện rõ ràng, không phải trang trí.
-          FIRST VIEWPORT: Dashboard — hàng thẻ thống kê hôm nay, danh sách điểm danh trực tiếp
-            dạng hàng-thẻ (ảnh, tên, giờ mono, dải trạng thái), sidebar là hành lang định danh
-            với thẻ mini của người dùng ở cuối, trên nút đăng xuất.
-          FORM: Direction 6/7 grounded candidates (Thẻ sinh viên / thẻ ra-vào), seed d5f5397d,
-            mode operate — impeccable skill.
-          FINISH: unreviewed and undocumented is unfinished; this build ends with the finish
-            review, the verdict, and DESIGN.md.
-        -->
+        <!-- SATS X visual contract: dark technical ink, aurora-teal signature gradient,
+             Outfit typography, precise data surfaces, and restrained motion. -->
         <div id="root"></div>
         <script type="module" src="/src/main.jsx"></script>
     </body>

@@ -5,6 +5,15 @@ import { WS_URL } from '../config/api'
 
 const WebSocketContext = createContext(null)
 
+/** Lỗi trả về từ một action WebSocket. `code`: SERVER_ERROR | TIMEOUT | NOT_CONNECTED */
+export class WebSocketActionError extends Error {
+    constructor(message, code) {
+        super(message || 'AWS Gateway processing error')
+        this.name = 'WebSocketActionError'
+        this.code = code
+    }
+}
+
 export const useWebSocket = () => {
     const context = useContext(WebSocketContext)
     if (!context) {
@@ -23,8 +32,15 @@ export const WebSocketProvider = ({ children }) => {
 
     const wsRef = useRef(null)
     const reconnectTimeoutRef = useRef(null)
+    const heartbeatIntervalRef = useRef(null)
     const messageHandlersRef = useRef(new Map())
     const pingStartRef = useRef(null)
+
+    // Backoff phải đọc từ ref: `connect` được gọi lại từ trong closure của
+    // ws.onclose, nên nếu chỉ đọc state thì mãi mãi thấy giá trị tại thời điểm
+    // hàm được tạo (0) và khoảng chờ kẹt ở 1000ms, không hề tăng dần.
+    const reconnectAttemptRef = useRef(0)
+    const connectRef = useRef(null)
 
     const { showError, showSuccess, showInfo } = useToast()
 
@@ -32,6 +48,10 @@ export const WebSocketProvider = ({ children }) => {
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current)
             reconnectTimeoutRef.current = null
+        }
+        if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current)
+            heartbeatIntervalRef.current = null
         }
     }, [])
 
@@ -49,8 +69,19 @@ export const WebSocketProvider = ({ children }) => {
             ws.onopen = () => {
                 setIsConnected(true)
                 setConnectionStatus('connected')
+                reconnectAttemptRef.current = 0
                 setReconnectAttempt(0)
-                showSuccess('Đã kết nối AWS WebSocket Gateway', 'AWS IoT/API')
+                showSuccess('Connected to AWS WebSocket Gateway', 'AWS IoT/API')
+
+                // Giữ kết nối sống: nhiều mạng (NAT/firewall di động, wifi giá rẻ)
+                // âm thầm cắt socket idle sau vài chục giây, sớm hơn nhiều so với
+                // idle timeout 10 phút của API Gateway — không có traffic định kỳ
+                // thì client giữ một socket "chết" mà không hề biết.
+                heartbeatIntervalRef.current = setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ action: 'ping', timestamp: Date.now() }))
+                    }
+                }, 25000)
             }
 
             ws.onmessage = (event) => {
@@ -73,18 +104,26 @@ export const WebSocketProvider = ({ children }) => {
                 if (data.action === 'compare' && data.status === 'success') {
                     if (data.matched) {
                         showSuccess(
-                            `Nhận diện thành công sinh viên: ${data.studentId} (${data.similarity}%)`,
-                            'Điểm danh tự động'
+                            `Student recognized: ${data.studentId} (${data.similarity}%)`,
+                            'Automatic attendance'
                         )
                     } else {
-                        showInfo('Khuôn mặt không khớp trong danh sách lớp', 'Điểm danh')
+                        showInfo('Face does not match this class roster', 'Attendance')
                     }
-                } else if (data.action === 'addFace' && data.status === 'success') {
-                    showSuccess(`Đã thêm khuôn mặt cho sinh viên ${data.studentId}`, 'Rekognition')
                 } else if (data.action === 'deleteFace' && data.status === 'success') {
-                    showSuccess(`Đã xoá khuôn mặt khỏi bộ sưu tập`, 'Rekognition')
-                } else if (data.status === 'error') {
-                    showError(data.message || 'Lỗi xử lý từ Lambda', 'AWS Gateway')
+                    showSuccess('Face removed from collection', 'Rekognition')
+                } else if (
+                    data.status === 'error' &&
+                    !/unsupported action: ?'?ping'?/i.test(data.message || '') &&
+                    // Lỗi của addFace/getUploadUrl do AddFaceModal tự hiển thị kèm
+                    // ngữ cảnh (ảnh nào, sinh viên nào) — toast chung ở đây chỉ làm
+                    // người dùng thấy hai thông báo trùng nhau cho cùng một sự cố.
+                    !['addFace', 'getUploadUrl'].includes(data.action)
+                ) {
+                    // Bỏ qua lỗi "Unsupported action: ping" — xảy ra khi route "ping"
+                    // trên API Gateway chưa được deploy, heartbeat rơi về $default.
+                    // Không phải lỗi thật, không cần làm phiền người dùng mỗi 25s.
+                    showError(data.message || 'Lambda processing error', 'AWS Gateway')
                 }
 
                 // Dispatch to subscribers
@@ -107,22 +146,35 @@ export const WebSocketProvider = ({ children }) => {
                 setConnectionStatus('disconnected')
                 cleanup()
 
+                // 1009 = "message too big": API Gateway đóng kết nối khi client gửi
+                // một frame > 32KB. Không nói rõ ra thì triệu chứng chỉ là "tự nhiên
+                // mất kết nối" và rất khó lần ra thủ phạm (xem AddFaceModal).
+                if (event.code === 1009) {
+                    showError(
+                        'The payload exceeded API Gateway’s 32 KB frame limit, so the connection was closed',
+                        'WebSocket 1009'
+                    )
+                }
+
                 // Auto reconnect with exponential backoff if not cleanly closed
                 if (event.code !== 1000) {
-                    const timeout = Math.min(1000 * Math.pow(1.5, reconnectAttempt), 15000)
+                    const timeout = Math.min(1000 * Math.pow(1.5, reconnectAttemptRef.current), 15000)
                     reconnectTimeoutRef.current = setTimeout(() => {
-                        setReconnectAttempt((prev) => prev + 1)
-                        connect()
+                        reconnectAttemptRef.current += 1
+                        setReconnectAttempt(reconnectAttemptRef.current)
+                        connectRef.current?.()
                     }, timeout)
                 }
             }
 
             wsRef.current = ws
-        } catch (error) {
+        } catch {
             setConnectionStatus('error')
-            showError('Không thể tạo kết nối WebSocket AWS', 'Lỗi')
+            showError('Could not establish an AWS WebSocket connection', 'Error')
         }
-    }, [reconnectAttempt, showError, showSuccess, showInfo, cleanup])
+    }, [showError, showSuccess, showInfo, cleanup])
+
+    connectRef.current = connect
 
     const disconnect = useCallback(() => {
         cleanup()
@@ -142,7 +194,7 @@ export const WebSocketProvider = ({ children }) => {
                 wsRef.current.send(payload)
                 return true
             } else {
-                showError('WebSocket chưa kết nối tới AWS Gateway', 'Lỗi')
+                showError('WebSocket is not connected to AWS Gateway', 'Error')
                 return false
             }
         },
@@ -189,9 +241,57 @@ export const WebSocketProvider = ({ children }) => {
         }
     }, [])
 
+    /**
+     * Gửi một action và chờ đúng phản hồi của nó — biến WebSocket một chiều thành
+     * request/response để chỗ gọi viết được `await` thay vì rải subscribe + timeout
+     * thủ công ở từng component (dễ quên dọn, dễ kẹt spinner mãi mãi).
+     */
+    const requestAction = useCallback(
+        (action, payload = {}, { timeout = 15000, responseAction = action } = {}) =>
+            new Promise((resolve, reject) => {
+                let settled = false
+
+                const finish = (fn, arg) => {
+                    if (settled) return
+                    settled = true
+                    clearTimeout(timer)
+                    unsubscribeAction()
+                    unsubscribeGeneric()
+                    fn(arg)
+                }
+
+                const unsubscribeAction = subscribe(responseAction, (res) => {
+                    if (res?.status === 'error') {
+                        finish(reject, new WebSocketActionError(res.message, 'SERVER_ERROR'))
+                    } else {
+                        finish(resolve, res)
+                    }
+                })
+
+                // Lambda cũ trả lỗi KHÔNG kèm field `action`, nên payload rơi vào
+                // nhóm 'response' chứ không tới subscriber của action — nghe thêm ở
+                // đây để lỗi hiện ra ngay thay vì phải chờ hết timeout.
+                const unsubscribeGeneric = subscribe('response', (res) => {
+                    if (res?.status === 'error') {
+                        finish(reject, new WebSocketActionError(res.message, 'SERVER_ERROR'))
+                    }
+                })
+
+                const timer = setTimeout(() => {
+                    finish(reject, new WebSocketActionError('The server did not respond', 'TIMEOUT'))
+                }, timeout)
+
+                if (!sendMessage({ action, ...payload })) {
+                    finish(reject, new WebSocketActionError('WebSocket is not connected to AWS Gateway', 'NOT_CONNECTED'))
+                }
+            }),
+        [subscribe, sendMessage]
+    )
+
     useEffect(() => {
         connect()
         return () => disconnect()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const value = {
@@ -206,6 +306,7 @@ export const WebSocketProvider = ({ children }) => {
         sendMessage,
         sendAction,
         subscribe,
+        requestAction,
         ping,
         reconnectAttempt
     }

@@ -8,7 +8,7 @@ web
 
 ## Users
 
-Giảng viên (teacher) tại PTIT là người dùng chính, đăng nhập để: xem tổng quan điểm danh hôm nay, quản lý lớp/sinh viên/môn học mình phụ trách, xem và điều chỉnh thời khoá biểu, quản lý dữ liệu khuôn mặt sinh viên (thêm/xoá) phục vụ nhận diện tự động. Backend vừa thêm role `admin` nhưng UI chưa phân biệt vai trò trong lần thiết kế lại này — xử lý sau, không phải phạm vi hiện tại.
+Instructors are the primary SATS X users. They sign in to review today’s attendance, manage classes, students and subjects, update schedules, and maintain biometric identity records. The backend includes an `admin` role, but role-specific UI remains outside this redesign.
 
 Người xem thứ hai, không tương tác trực tiếp: hội đồng chấm đồ án NCKH xem qua demo trực tiếp hoặc ảnh chụp màn hình. Giao diện phải tự nói lên được đây là sản phẩm nghiêm túc, không cần người trình bày giải thích thêm.
 
@@ -40,11 +40,11 @@ Khác với điểm danh thủ công hoặc quét mã QR (vẫn cần sinh viên
 
 ## Brand Commitments
 
-PTIT (Học viện Công nghệ Bưu chính Viễn thông) là nhận diện thương hiệu chính thức, không phải placeholder. Logo hiện có tại `src/assets/images/ptit-bg.png` phải xuất hiện đúng vị trí then chốt (màn hình đăng nhập, sidebar/header) và được tôn trọng khi thiết kế lại — không thay bằng logo khác hay bỏ đi.
+SATS X is the product identity. The interface uses an original SX monogram, Outfit typography, and an aurora-teal gradient reserved for brand-bearing surfaces and primary actions.
 
 ## Evidence on Hand
 
-- Logo PTIT: `src/assets/images/ptit-bg.png`.
+- SATS X monogram: rendered as a native UI component with no external logo dependency.
 - Hai ảnh nền/asset khác đang dùng cho trang đăng nhập: `bg.png`, `v-aws.png` — không rõ có phải asset chính thức hay chỉ tạm, coi là có thể thay khi thiết kế lại trừ khi giữ được nguyên trạng dễ dàng.
 - Không có testimonial, số liệu, hay case study nào cần dùng — đây là hệ thống nội bộ, không phải trang marketing.
 

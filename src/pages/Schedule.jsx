@@ -9,12 +9,12 @@ import PropTypes from 'prop-types'
 import { Badge, Button, EmptyState, PageHeader, Spinner } from '../components/ui'
 
 const DAYS = [
-    { key: 'Monday', label: 'Thứ Hai' },
-    { key: 'Tuesday', label: 'Thứ Ba' },
-    { key: 'Wednesday', label: 'Thứ Tư' },
-    { key: 'Thursday', label: 'Thứ Năm' },
-    { key: 'Friday', label: 'Thứ Sáu' },
-    { key: 'Saturday', label: 'Thứ Bảy' }
+    { key: 'Monday', label: 'Monday' },
+    { key: 'Tuesday', label: 'Tuesday' },
+    { key: 'Wednesday', label: 'Wednesday' },
+    { key: 'Thursday', label: 'Thursday' },
+    { key: 'Friday', label: 'Friday' },
+    { key: 'Saturday', label: 'Saturday' }
 ]
 
 const dayLabel = (key) => DAYS.find((d) => d.key === key)?.label || key
@@ -33,7 +33,7 @@ export default function Schedule() {
             const res = await getSchedule()
             setScheduleList(res?.success ? res.data : [])
         } catch (err) {
-            showError(err.response?.data?.message || err.message || 'Không thể tải thời khoá biểu', 'Lỗi')
+            showError(err.response?.data?.message || err.message || 'Could not load schedule', 'Error')
         } finally {
             setLoading(false)
         }
@@ -49,18 +49,18 @@ export default function Schedule() {
         <div className="space-y-6">
             <PageHeader
                 title={t('weeklySchedule')}
-                description="Thời khoá biểu giảng dạy và điểm danh theo phòng học"
+                description="Teaching sessions and attendance windows by room"
                 actions={
                     <Button variant="secondary" size="sm" onClick={fetchScheduleData}>
                         <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                        Làm mới
+                        Refresh
                     </Button>
                 }
             />
 
             <div className="flex flex-wrap gap-2 rounded-card border border-border bg-surface p-2">
                 <DayPill active={selectedDay === 'all'} onClick={() => setSelectedDay('all')}>
-                    Tất cả các ngày
+                    All days
                 </DayPill>
                 {DAYS.map((d) => (
                     <DayPill key={d.key} active={selectedDay === d.key} onClick={() => setSelectedDay(d.key)}>
@@ -72,10 +72,10 @@ export default function Schedule() {
             {loading ? (
                 <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
                     <Spinner size="sm" />
-                    Đang tải thời khoá biểu...
+                    Loading schedule...
                 </div>
             ) : filteredSchedule.length === 0 ? (
-                <EmptyState title="Không có buổi học nào vào ngày đã chọn" />
+                <EmptyState title="No sessions on the selected day" />
             ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredSchedule.map((item) => (
@@ -107,7 +107,7 @@ export default function Schedule() {
                                 <span className="font-data text-[11px] text-text-tertiary">{item.teacher_name}</span>
                                 <Link to="/attendance">
                                     <Button size="sm">
-                                        Vào phòng học
+                                        Open classroom
                                         <HiOutlineArrowRight className="h-3.5 w-3.5" />
                                     </Button>
                                 </Link>

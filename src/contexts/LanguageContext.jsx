@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext } from 'react'
 import PropTypes from 'prop-types'
 
 // Language translations
@@ -448,8 +448,8 @@ const translations = {
         all: 'All',
         
         // System
-        systemTitle: 'System',
-        systemSubtitle: 'Student Management',
+        systemTitle: 'SATS X',
+        systemSubtitle: 'Intelligent Attendance',
         
         // Navigation
         dashboard: 'Dashboard',
@@ -463,8 +463,8 @@ const translations = {
         logout: 'Logout',
         
         // Home page
-        homeTitle: 'Student Management System',
-        homeTitleShort: 'SMS',
+        homeTitle: 'SATS X',
+        homeTitleShort: 'SX',
         homeHero: 'Smart Student',
         homeHeroHighlight: 'Management',
         homeDescription: 'Modern student management system with smart attendance technology, helping teachers save time and improve classroom management efficiency.',
@@ -484,7 +484,7 @@ const translations = {
         
         // Dashboard
         welcomeBack: 'Welcome back!',
-        dashboardSubtitle: 'Student Management System - Track attendance and manage classes',
+        dashboardSubtitle: 'Live attendance, identity, and classroom operations',
         
         // Students page
         studentsManagement: 'Student Management',
@@ -605,7 +605,7 @@ const translations = {
         months24: '24 months',
         
         // Footer
-        systemVersion: 'Smart Attendance System • Version 1.0.0',
+        systemVersion: 'SATS X • Version 1.0.0',
         
         // Profile page
         userProfile: 'User Profile',
@@ -851,33 +851,22 @@ const LanguageContext = createContext()
 
 // Language Provider Component
 export const LanguageProvider = ({ children }) => {
-    const [language, setLanguage] = useState(() => {
-        // Get saved language from localStorage or default to Vietnamese
-        return localStorage.getItem('language') || 'vi'
-    })
-
-    // Save language to localStorage whenever it changes
-    useEffect(() => {
-        localStorage.setItem('language', language)
-    }, [language])
+    const language = 'en'
 
     // Get translation function
     const t = (key) => {
-        return translations[language][key] || key
+        return translations.en[key] || key
     }
 
     // Change language function
-    const changeLanguage = (newLanguage) => {
-        if (translations[newLanguage]) {
-            setLanguage(newLanguage)
-        }
-    }
+    const changeLanguage = () => {}
 
     const value = {
         language,
         changeLanguage,
         t,
-        availableLanguages: Object.keys(translations)
+        setLanguage: changeLanguage,
+        availableLanguages: ['en']
     }
 
     return (
@@ -898,4 +887,4 @@ export const useLanguage = () => {
 
 LanguageProvider.propTypes = {
     children: PropTypes.node.isRequired
-} 
+}

@@ -36,11 +36,11 @@ export default function TodaySubjects() {
         <Card padded={false}>
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <div>
-                    <h3 className="text-sm font-semibold text-text">Lịch học hôm nay</h3>
-                    <p className="mt-0.5 text-xs text-text-secondary">Tiết học đang diễn ra và sắp tới</p>
+                    <h3 className="text-sm font-semibold text-text">Today’s schedule</h3>
+                    <p className="mt-0.5 text-xs text-text-secondary">Current and upcoming sessions</p>
                 </div>
                 <Link to="/schedule" className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover">
-                    Xem lịch tuần
+                    View week
                     <HiArrowRight className="h-3.5 w-3.5" />
                 </Link>
             </div>
@@ -51,7 +51,7 @@ export default function TodaySubjects() {
                     <div className="h-16 animate-pulse rounded-card bg-surface-hover" />
                 </div>
             ) : schedules.length === 0 ? (
-                <EmptyState title="Hôm nay không có lịch dạy" description="Lịch giảng dạy sẽ hiển thị tại đây khi đến ngày." />
+                <EmptyState title="No sessions today" description="Scheduled sessions will appear here on the day." />
             ) : (
                 <div className="divide-y divide-border">
                     {schedules.map((s) => (
@@ -74,7 +74,7 @@ export default function TodaySubjects() {
                             </div>
                             <Link to="/attendance" className="shrink-0">
                                 <Button variant="secondary" size="sm">
-                                    Điểm danh
+                                    Attendance
                                 </Button>
                             </Link>
                         </div>

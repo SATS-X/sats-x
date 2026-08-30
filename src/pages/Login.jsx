@@ -4,13 +4,12 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { HiOutlineMail, HiOutlineLockClosed, HiEye, HiEyeOff, HiOutlineCheckCircle } from 'react-icons/hi'
 import { RiFingerprintLine } from 'react-icons/ri'
-import { Button, Field, Input, ThemeToggle } from '../components/ui'
-import ptitLogo from '../assets/images/ptit-bg.png'
+import { BrandMark, Button, Field, Input, ThemeToggle } from '../components/ui'
 
 const HIGHLIGHTS = [
-    'Nhận diện khuôn mặt dưới 500ms, độ chính xác cao',
-    'Tích hợp IoT Core MQTT & WebSocket hai chiều',
-    'Quản lý lớp học, thời khoá biểu và sinh viên tự động'
+    'Live biometric matching with clear confidence signals',
+    'Bidirectional IoT Core MQTT and WebSocket connectivity',
+    'Classes, schedules, students, and face records in one place'
 ]
 
 export default function Login() {
@@ -32,19 +31,19 @@ export default function Login() {
             if (mode === 'login') {
                 const res = await login(email, password)
                 if (res.success) {
-                    showSuccess(`Chào mừng ${res.user?.full_name || res.user?.email}`, 'Đăng nhập thành công')
+                    showSuccess(`Welcome back, ${res.user?.full_name || res.user?.email}`, 'Signed in')
                     navigate('/dashboard')
                 } else {
-                    showError(res.message || 'Đăng nhập thất bại', 'Lỗi xác thực')
+                    showError(res.message || 'Sign in failed', 'Authentication error')
                 }
             } else {
                 const res = await activate(email, password)
                 if (res.success) {
-                    showSuccess('Đã đặt mật khẩu. Bạn có thể đăng nhập.', 'Kích hoạt thành công')
+                    showSuccess('Password created. You can now sign in.', 'Account activated')
                     setMode('login')
                     setPassword('')
                 } else {
-                    showError(res.message || 'Kích hoạt thất bại', 'Lỗi')
+                    showError(res.message || 'Activation failed', 'Error')
                 }
             }
         } finally {
@@ -54,33 +53,26 @@ export default function Login() {
 
     return (
         <div className="flex min-h-[100dvh] bg-bg text-text">
-            <div className="hidden flex-col justify-between border-r border-border bg-surface p-12 lg:flex lg:w-1/2">
+            <div className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-surface p-12 lg:flex lg:w-1/2">
+                <div className="pointer-events-none absolute -left-24 top-1/3 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+                <div className="pointer-events-none absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-brand-end/20 blur-3xl" />
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-card border border-border bg-white p-1.5">
-                            <img src={ptitLogo} alt="PTIT" className="h-full w-full object-contain" />
-                        </div>
-                        <div>
-                            <div className="text-sm font-semibold text-text">PTIT Attendance System</div>
-                            <div className="text-xs text-text-tertiary">Học viện Công nghệ Bưu chính Viễn thông</div>
-                        </div>
-                    </div>
+                    <BrandMark />
                     <ThemeToggle />
                 </div>
 
-                <div className="my-auto max-w-md space-y-6">
+                <div className="relative my-auto max-w-lg space-y-7">
                     <div className="inline-flex items-center gap-2 rounded-chip border border-border px-3 py-1.5 text-xs text-text-secondary">
                         <RiFingerprintLine className="h-4 w-4" />
                         AI Biometric Attendance Platform
                     </div>
 
-                    <h1 className="text-3xl font-semibold leading-tight tracking-tight text-text">
-                        Hệ thống điểm danh bằng nhận diện khuôn mặt
+                    <h1 className="text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-text">
+                        Attendance intelligence, always in view.
                     </h1>
 
-                    <p className="text-sm leading-relaxed text-text-secondary">
-                        Tự động nhận diện sinh viên qua camera ESP32-CAM và AWS Rekognition, đồng bộ dữ liệu thời gian
-                        thực qua WebSocket và lưu trữ an toàn trên AWS S3.
+                    <p className="max-w-md text-base leading-relaxed text-text-secondary">
+                        SATS X turns connected cameras and AWS recognition into a clear, real-time operational record.
                     </p>
 
                     <div className="space-y-3 pt-2">
@@ -93,15 +85,14 @@ export default function Login() {
                     </div>
                 </div>
 
-                <div className="font-data text-xs text-text-tertiary">© 2024-2025 NCKH D22CQCI01-N · PTIT</div>
+                <div className="font-data text-xs text-text-tertiary">© 2026 SATS X · Intelligent attendance platform</div>
             </div>
 
             <div className="flex w-full items-center justify-center p-6 lg:w-1/2 sm:p-12">
                 <div className="w-full max-w-sm space-y-6">
                     <div className="mb-2 flex items-center justify-between lg:hidden">
                         <div className="flex items-center gap-2.5">
-                            <img src={ptitLogo} alt="PTIT" className="h-8 w-8 rounded-card border border-border bg-white object-contain p-1" />
-                            <span className="text-sm font-semibold text-text">PTIT Attendance</span>
+                            <BrandMark />
                         </div>
                         <ThemeToggle />
                     </div>
@@ -115,7 +106,7 @@ export default function Login() {
                                     mode === 'login' ? 'bg-accent text-accent-foreground' : 'text-text-secondary hover:text-text'
                                 }`}
                             >
-                                Đăng nhập
+                                Sign in
                             </button>
                             <button
                                 type="button"
@@ -124,23 +115,23 @@ export default function Login() {
                                     mode === 'activate' ? 'bg-accent text-accent-foreground' : 'text-text-secondary hover:text-text'
                                 }`}
                             >
-                                Kích hoạt tài khoản
+                                Activate account
                             </button>
                         </div>
 
                         <div>
                             <h2 className="text-lg font-semibold text-text">
-                                {mode === 'login' ? 'Đăng nhập vào hệ thống' : 'Kích hoạt tài khoản'}
+                                {mode === 'login' ? 'Sign in to SATS X' : 'Activate your account'}
                             </h2>
                             <p className="mt-1 text-xs text-text-secondary">
                                 {mode === 'login'
-                                    ? 'Nhập thông tin xác thực để truy cập hệ thống'
-                                    : 'Dành cho giáo viên đã có trong hệ thống nhưng chưa đặt mật khẩu'}
+                                    ? 'Use your credentials to open the operations workspace.'
+                                    : 'For invited instructors who have not created a password yet.'}
                             </p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <Field label="Email trường" required>
+                            <Field label="Work email" required>
                                 <div className="relative">
                                     <HiOutlineMail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
                                     <Input
@@ -148,13 +139,13 @@ export default function Login() {
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="teacher@ptit.edu.vn"
+                                        placeholder="you@organization.edu"
                                         className="pl-9"
                                     />
                                 </div>
                             </Field>
 
-                            <Field label={mode === 'login' ? 'Mật khẩu' : 'Mật khẩu mới'} required>
+                            <Field label={mode === 'login' ? 'Password' : 'New password'} required>
                                 <div className="relative">
                                     <HiOutlineLockClosed className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
                                     <Input
@@ -178,14 +169,14 @@ export default function Login() {
                             </Field>
 
                             <Button type="submit" loading={isSubmitting} className="w-full" size="lg">
-                                {mode === 'login' ? 'Đăng nhập' : 'Đặt mật khẩu'}
+                                {mode === 'login' ? 'Sign in' : 'Create password'}
                             </Button>
                         </form>
                     </div>
 
                     <div className="text-center text-xs text-text-tertiary">
                         <Link to="/" className="hover:text-text-secondary">
-                            ← Quay lại trang giới thiệu
+                            ← Back to overview
                         </Link>
                     </div>
                 </div>

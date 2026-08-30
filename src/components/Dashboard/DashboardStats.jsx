@@ -73,7 +73,7 @@ export default function DashboardStats() {
                     tone: 'present'
                 },
                 {
-                    label: 'Tỉ lệ đúng giờ hôm nay',
+                    label: 'On-time rate today',
                     value: todayStats === null || todayStats.onTimeRate === null ? loadingLabel : `${todayStats.onTimeRate}%`,
                     tone: 'late'
                 }

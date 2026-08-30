@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Link } from 'react-router-dom'
-import { HiMenuAlt2, HiOutlineUser, HiOutlineLogout, HiOutlineCog, HiOutlineTranslate } from 'react-icons/hi'
+import { HiMenuAlt2, HiOutlineUser, HiOutlineLogout, HiOutlineCog } from 'react-icons/hi'
 import { useAuth } from '../../contexts/AuthContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { Avatar, ThemeToggle } from '../ui'
@@ -9,7 +9,7 @@ import WebSocketStatus from './WebSocketStatus'
 
 export default function Header({ onOpenMobileMenu }) {
     const { user, logout } = useAuth()
-    const { language, setLanguage, t } = useLanguage()
+    const { t } = useLanguage()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const menuRef = useRef(null)
 
@@ -24,16 +24,16 @@ export default function Header({ onOpenMobileMenu }) {
     }, [])
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/85 px-4 backdrop-blur-xl sm:px-6">
             <div className="flex items-center gap-3">
                 <button
                     onClick={onOpenMobileMenu}
                     className="rounded-card p-2 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text lg:hidden"
-                    aria-label="Mở menu"
+                    aria-label="Open menu"
                 >
                     <HiMenuAlt2 className="h-6 w-6" />
                 </button>
-                <span className="font-data hidden text-xs text-text-tertiary sm:inline">Năm học 2024-2025</span>
+                <span className="font-data hidden text-xs text-text-tertiary sm:inline">SATS X / LIVE OPERATIONS</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -42,15 +42,6 @@ export default function Header({ onOpenMobileMenu }) {
                 </div>
 
                 <ThemeToggle />
-
-                <button
-                    onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
-                    title="Đổi ngôn ngữ"
-                    className="flex h-9 items-center gap-1.5 rounded-card px-2.5 text-xs font-semibold uppercase text-text-secondary transition-colors hover:bg-surface-hover hover:text-text"
-                >
-                    <HiOutlineTranslate className="h-4 w-4" />
-                    {language === 'vi' ? 'VI' : 'EN'}
-                </button>
 
                 <div className="relative" ref={menuRef}>
                     <button
@@ -64,7 +55,7 @@ export default function Header({ onOpenMobileMenu }) {
                     {isMenuOpen && (
                         <div className="absolute right-0 z-50 mt-2 w-56 animate-fade-in rounded-card border border-border bg-surface py-1 shadow-elevated">
                             <div className="border-b border-border px-4 py-3">
-                                <div className="truncate text-xs font-semibold text-text">{user?.full_name || 'Giảng viên'}</div>
+                                <div className="truncate text-xs font-semibold text-text">{user?.full_name || 'Instructor'}</div>
                                 <div className="truncate text-[11px] text-text-tertiary">{user?.email}</div>
                             </div>
 

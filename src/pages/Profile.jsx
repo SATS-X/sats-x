@@ -39,10 +39,10 @@ export default function Profile() {
         try {
             const res = await updateProfile(form)
             if (res.success) {
-                showSuccess('Đã cập nhật hồ sơ cá nhân', 'Thành công')
+                showSuccess('Profile updated', 'Success')
                 setIsEditing(false)
             } else {
-                showError(res.message || 'Cập nhật thất bại', 'Lỗi')
+                showError(res.message || 'Update failed', 'Error')
             }
         } finally {
             setSaving(false)
@@ -52,7 +52,7 @@ export default function Profile() {
     const handleChangePassword = async (e) => {
         e.preventDefault()
         if (newPassword !== confirmPassword) {
-            showError('Mật khẩu mới không khớp', 'Lỗi')
+            showError('New passwords do not match', 'Error')
             return
         }
 
@@ -60,13 +60,13 @@ export default function Profile() {
         try {
             const res = await changePassword(oldPassword, newPassword)
             if (res?.success) {
-                showSuccess('Đổi mật khẩu thành công', 'Thành công')
+                showSuccess('Password changed', 'Success')
                 setPasswordModalOpen(false)
                 setOldPassword('')
                 setNewPassword('')
                 setConfirmPassword('')
             } else {
-                showError(res?.message || 'Đổi mật khẩu thất bại', 'Lỗi')
+                showError(res?.message || 'Password change failed', 'Error')
             }
         } finally {
             setChangingPassword(false)
@@ -87,7 +87,7 @@ export default function Profile() {
                 <Avatar name={user?.full_name || user?.email} size="lg" className="text-2xl" />
 
                 <div className="flex-1 space-y-1 text-center sm:text-left">
-                    <h2 className="text-lg font-semibold text-text">{user?.full_name || 'Giảng viên PTIT'}</h2>
+                    <h2 className="text-lg font-semibold text-text">{user?.full_name || 'SATS X instructor'}</h2>
                     <p className="font-data text-xs text-text-tertiary">{user?.email}</p>
                     {user?.department && (
                         <div className="flex flex-wrap justify-center gap-2 pt-2 sm:justify-start">
@@ -98,7 +98,7 @@ export default function Profile() {
 
                 <Button variant="secondary" size="sm" onClick={() => setPasswordModalOpen(true)}>
                     <HiOutlineKey className="h-4 w-4" />
-                    Đổi mật khẩu
+                    Change password
                 </Button>
             </div>
 
@@ -106,23 +106,23 @@ export default function Profile() {
                 <div className="flex items-center justify-between border-b border-border pb-4">
                     <h3 className="text-sm font-semibold text-text">{t('personalInfo')}</h3>
                     <Button variant={isEditing ? 'ghost' : 'secondary'} size="sm" onClick={() => setIsEditing((v) => !v)}>
-                        {isEditing ? 'Hủy bỏ' : 'Chỉnh sửa'}
+                        {isEditing ? 'Cancel' : 'Edit'}
                     </Button>
                 </div>
 
                 <form onSubmit={handleSaveProfile} className="space-y-4 pt-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <Field label="Họ và tên">
+                        <Field label="Full name">
                             <Input
                                 disabled={!isEditing}
                                 value={form.full_name}
                                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                             />
                         </Field>
-                        <Field label="Email" hint="Không thể thay đổi">
+                        <Field label="Email" hint="Cannot be changed">
                             <Input disabled value={user?.email || ''} className="font-data" />
                         </Field>
-                        <Field label="Số điện thoại">
+                        <Field label="Phone number">
                             <Input
                                 disabled={!isEditing}
                                 value={form.phone_number}
@@ -131,20 +131,20 @@ export default function Profile() {
                                 className="font-data"
                             />
                         </Field>
-                        <Field label="Chức vụ">
+                        <Field label="Position">
                             <Input
                                 disabled={!isEditing}
                                 value={form.position}
                                 onChange={(e) => setForm({ ...form, position: e.target.value })}
-                                placeholder="Giảng viên"
+                                placeholder="Instructor"
                             />
                         </Field>
-                        <Field label="Khoa / Đơn vị" className="sm:col-span-2">
+                        <Field label="Department / Unit" className="sm:col-span-2">
                             <Input
                                 disabled={!isEditing}
                                 value={form.department}
                                 onChange={(e) => setForm({ ...form, department: e.target.value })}
-                                placeholder="Khoa Công nghệ thông tin"
+                                placeholder="School of Computing"
                             />
                         </Field>
                     </div>
@@ -152,7 +152,7 @@ export default function Profile() {
                     {isEditing && (
                         <div className="flex justify-end pt-2">
                             <Button type="submit" loading={saving}>
-                                Lưu thay đổi
+                                Save changes
                             </Button>
                         </div>
                     )}
@@ -162,20 +162,20 @@ export default function Profile() {
             <Modal
                 isOpen={passwordModalOpen}
                 onClose={() => setPasswordModalOpen(false)}
-                title="Đổi mật khẩu tài khoản"
+                title="Change account password"
                 footer={
                     <>
                         <Button variant="secondary" onClick={() => setPasswordModalOpen(false)}>
-                            Hủy
+                            Cancel
                         </Button>
                         <Button type="submit" form="change-password-form" loading={changingPassword}>
-                            Xác nhận đổi mật khẩu
+                            Change password
                         </Button>
                     </>
                 }
             >
                 <form id="change-password-form" onSubmit={handleChangePassword} className="space-y-4">
-                    <Field label="Mật khẩu hiện tại" required>
+                    <Field label="Current password" required>
                         <Input
                             type="password"
                             required
@@ -184,7 +184,7 @@ export default function Profile() {
                             placeholder="••••••••"
                         />
                     </Field>
-                    <Field label="Mật khẩu mới" required hint="Tối thiểu 8 ký tự, gồm chữ và số">
+                    <Field label="New password" required hint="At least 8 characters, including letters and numbers">
                         <Input
                             type="password"
                             required
@@ -194,7 +194,7 @@ export default function Profile() {
                             placeholder="••••••••"
                         />
                     </Field>
-                    <Field label="Nhập lại mật khẩu mới" required>
+                    <Field label="Confirm new password" required>
                         <Input
                             type="password"
                             required

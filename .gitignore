@@ -3,6 +3,7 @@ dist/
 
 # Secret thật, không phải placeholder
 .env
+.env.production
 
 # AWS Amplify (no longer used)
 .amplify/

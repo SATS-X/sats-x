@@ -31,7 +31,7 @@ function RequireAuth({ children }) {
             <div className="flex min-h-[100dvh] items-center justify-center bg-bg text-text">
                 <div className="flex flex-col items-center gap-3">
                     <Spinner size="lg" />
-                    <span className="font-data text-xs text-text-tertiary">Đang khởi tạo hệ thống...</span>
+                    <span className="font-data text-xs text-text-tertiary">Starting SATS X...</span>
                 </div>
             </div>
         )

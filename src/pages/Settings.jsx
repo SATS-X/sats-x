@@ -16,7 +16,7 @@ const QUICK_PAYLOADS = {
 }
 
 export default function Settings() {
-    const { t, language, setLanguage } = useLanguage()
+    const { t } = useLanguage()
     const { theme, setTheme } = useTheme()
     const { isConnected, connectionStatus, connect, disconnect, ping, latency, sendMessage, messageHistory } = useWebSocket()
     const { showSuccess, showInfo } = useToast()
@@ -28,9 +28,9 @@ export default function Settings() {
         setSending(true)
         try {
             const parsed = JSON.parse(customPayload)
-            if (sendMessage(parsed)) showSuccess('Đã gửi payload tới AWS WebSocket Gateway', 'WebSocket Tester')
+            if (sendMessage(parsed)) showSuccess('Payload sent to AWS WebSocket Gateway', 'WebSocket tester')
         } catch (err) {
-            showInfo('JSON payload không hợp lệ: ' + err.message, 'Lỗi cú pháp')
+            showInfo('Invalid JSON payload: ' + err.message, 'Syntax error')
         } finally {
             setSending(false)
         }
@@ -38,7 +38,7 @@ export default function Settings() {
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text)
-        showSuccess('Đã sao chép vào clipboard', 'Clipboard')
+        showSuccess('Copied to clipboard', 'Clipboard')
     }
 
     return (
@@ -55,39 +55,39 @@ export default function Settings() {
                             <RiSignalWifiFill className="h-5 w-5" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-semibold text-text">Chẩn đoán AWS WebSocket Gateway</h3>
-                            <p className="text-xs text-text-secondary">Kiểm tra kết nối thời gian thực tới API Gateway v2</p>
+                            <h3 className="text-sm font-semibold text-text">AWS WebSocket Gateway diagnostics</h3>
+                            <p className="text-xs text-text-secondary">Inspect the live API Gateway v2 connection</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         {isConnected ? (
                             <Button variant="secondary" size="sm" onClick={disconnect}>
-                                Ngắt kết nối
+                                Disconnect
                             </Button>
                         ) : (
                             <Button size="sm" onClick={connect}>
                                 <HiOutlineRefresh className="h-3.5 w-3.5" />
-                                Kết nối lại
+                                Reconnect
                             </Button>
                         )}
                         <Button variant="secondary" size="sm" disabled={!isConnected} onClick={ping}>
-                            Ping độ trễ
+                            Measure latency
                         </Button>
                     </div>
                 </div>
 
                 <div className="space-y-6 p-5">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <InfoTile label="Trạng thái">
+                        <InfoTile label="Status">
                             <span className="flex items-center gap-2">
                                 <span className={`h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-present' : 'bg-text-tertiary'}`} />
                                 <span className={isConnected ? 'text-present' : 'text-text'}>
-                                    {isConnected ? 'Đã kết nối' : connectionStatus}
+                                    {isConnected ? 'Connected' : connectionStatus}
                                 </span>
                             </span>
                         </InfoTile>
-                        <InfoTile label="Độ trễ round-trip">{latency ? `${latency} ms` : '—'}</InfoTile>
-                        <InfoTile label="Giao thức">WSS / JSON</InfoTile>
+                        <InfoTile label="Round-trip latency">{latency ? `${latency} ms` : '—'}</InfoTile>
+                        <InfoTile label="Protocol">WSS / JSON</InfoTile>
                     </div>
 
                     <div className="space-y-1.5">
@@ -98,7 +98,7 @@ export default function Settings() {
                                 value={WS_URL}
                                 className="font-data h-9 w-full rounded-card border border-border bg-surface-sunken px-3 text-xs text-text-secondary"
                             />
-                            <Button variant="secondary" size="sm" onClick={() => copyToClipboard(WS_URL)} title="Sao chép URL">
+                            <Button variant="secondary" size="sm" onClick={() => copyToClipboard(WS_URL)} title="Copy URL">
                                 <HiOutlineClipboardCopy className="h-4 w-4" />
                             </Button>
                         </div>
@@ -108,7 +108,7 @@ export default function Settings() {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <label className="flex items-center gap-1.5 text-sm font-medium text-text">
                                 <RiTerminalBoxLine className="h-4 w-4" />
-                                Gửi payload kiểm thử trực tiếp
+                                Send a live test payload
                             </label>
                             <div className="flex gap-1.5">
                                 {Object.entries(QUICK_PAYLOADS).map(([label, payload]) => (
@@ -133,14 +133,14 @@ export default function Settings() {
                         <div className="flex justify-end">
                             <Button size="sm" disabled={!isConnected || sending} onClick={handleSendTestPayload}>
                                 <HiOutlinePlay className="h-3.5 w-3.5" />
-                                Gửi frame qua WebSocket
+                                Send WebSocket frame
                             </Button>
                         </div>
                     </div>
 
                     {messageHistory.length > 0 && (
                         <div className="space-y-2">
-                            <div className="text-xs font-semibold text-text-secondary">Nhật ký frame nhận được ({messageHistory.length})</div>
+                            <div className="text-xs font-semibold text-text-secondary">Received frame log ({messageHistory.length})</div>
                             <div className="font-data max-h-48 space-y-2 overflow-y-auto rounded-card border border-border bg-surface-sunken p-3 text-xs">
                                 {messageHistory.map((item) => (
                                     <div key={item.id} className="border-b border-border pb-1.5 last:border-0">
@@ -160,8 +160,8 @@ export default function Settings() {
                         <HiOutlineCloud className="h-5 w-5" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-semibold text-text">Cấu hình hạ tầng AWS</h3>
-                        <p className="text-xs text-text-secondary">Được triển khai tự động bởi Terraform</p>
+                        <h3 className="text-sm font-semibold text-text">AWS infrastructure</h3>
+                        <p className="text-xs text-text-secondary">Provisioned automatically with Terraform</p>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
@@ -177,17 +177,10 @@ export default function Settings() {
                 </div>
                 <div className="space-y-4 p-5">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-text">Ngôn ngữ hiển thị</span>
-                        <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-40">
-                            <option value="vi">Tiếng Việt</option>
-                            <option value="en">English</option>
-                        </Select>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm text-text">Giao diện</span>
+                        <span className="text-sm text-text">Theme</span>
                         <Select value={theme} onChange={(e) => setTheme(e.target.value)} className="w-40">
-                            <option value="light">Sáng</option>
-                            <option value="dark">Tối</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
                         </Select>
                     </div>
                 </div>

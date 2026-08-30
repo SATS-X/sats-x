@@ -19,7 +19,7 @@ export default function Dashboard() {
         const unsubscribe = subscribe('compare', (data) => {
             if (!data) return
             setLiveEvents((prev) => [
-                { id: Date.now(), timestamp: new Date().toLocaleTimeString('vi-VN'), ...data },
+                { id: Date.now(), timestamp: new Date().toLocaleTimeString('en-US'), ...data },
                 ...prev.slice(0, 3)
             ])
         })
@@ -29,20 +29,20 @@ export default function Dashboard() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title={`${t('welcomeBack')}, ${user?.full_name || user?.email || 'Giảng viên'}`}
-                description="Hệ thống điểm danh sinh viên tự động qua camera ESP32-CAM và nhận diện khuôn mặt AWS Rekognition."
+                title={`${t('welcomeBack')}, ${user?.full_name || user?.email || 'Instructor'}`}
+                description="Live attendance operations powered by connected ESP32-CAM devices and AWS Rekognition."
                 actions={
                     <>
                         <Link to="/face-management">
                             <Button variant="secondary" size="sm">
                                 <HiOutlinePhotograph className="h-4 w-4" />
-                                Đăng ký khuôn mặt
+                                Register face
                             </Button>
                         </Link>
                         <Link to="/attendance">
                             <Button size="sm">
                                 <HiOutlineClipboardList className="h-4 w-4" />
-                                Xem điểm danh
+                                View attendance
                             </Button>
                         </Link>
                     </>
@@ -54,7 +54,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between border-b border-border px-5 py-3">
                         <div className="flex items-center gap-2">
                             <span className="h-1.5 w-1.5 rounded-full bg-present" aria-hidden="true" />
-                            <span className="text-xs font-semibold text-text">Nhận diện thời gian thực</span>
+                            <span className="text-xs font-semibold text-text">Live recognition</span>
                         </div>
                         <span className="font-data text-[11px] text-text-tertiary">AWS Rekognition</span>
                     </div>
@@ -63,11 +63,11 @@ export default function Dashboard() {
                             <div key={evt.id} className="flex items-center gap-3 rounded-card border border-border p-3">
                                 <Avatar name={evt.studentId} size="sm" />
                                 <div className="min-w-0 flex-1">
-                                    <div className="font-data truncate text-xs font-medium text-text">{evt.studentId || 'Không rõ'}</div>
+                                    <div className="font-data truncate text-xs font-medium text-text">{evt.studentId || 'Unknown'}</div>
                                     <div className="font-data text-[11px] text-text-tertiary">{evt.timestamp}</div>
                                 </div>
                                 <StatusChip variant={evt.matched ? 'present' : 'neutral'} className="shrink-0">
-                                    {evt.matched ? `${evt.similarity}%` : 'Không khớp'}
+                                    {evt.matched ? `${evt.similarity}%` : 'No match'}
                                 </StatusChip>
                             </div>
                         ))}

@@ -5,7 +5,7 @@ import { getAllAttendance } from '../../api/attendance/getAttendance'
 import { Avatar, Card, EmptyState, StatusChip } from '../ui'
 
 const REMARK_VARIANT = { 'On Time': 'present', Late: 'late', Absent: 'absent' }
-const REMARK_LABEL = { 'On Time': 'Đúng giờ', Late: 'Trễ', Absent: 'Vắng' }
+const REMARK_LABEL = { 'On Time': 'On time', Late: 'Late', Absent: 'Absent' }
 
 export default function RecentAttendance() {
     const [records, setRecords] = useState([])
@@ -28,11 +28,11 @@ export default function RecentAttendance() {
         <Card padded={false}>
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <div>
-                    <h3 className="text-sm font-semibold text-text">Điểm danh gần đây</h3>
-                    <p className="mt-0.5 text-xs text-text-secondary">Nhật ký nhận diện khuôn mặt tự động</p>
+                    <h3 className="text-sm font-semibold text-text">Recent attendance</h3>
+                    <p className="mt-0.5 text-xs text-text-secondary">Automatic facial recognition log</p>
                 </div>
                 <Link to="/attendance" className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover">
-                    Xem tất cả
+                    View all
                     <HiArrowRight className="h-3.5 w-3.5" />
                 </Link>
             </div>
@@ -44,8 +44,8 @@ export default function RecentAttendance() {
                 </div>
             ) : records.length === 0 ? (
                 <EmptyState
-                    title="Chưa có bản ghi điểm danh nào"
-                    description="Dữ liệu sẽ tự động xuất hiện khi ESP32-CAM nhận diện sinh viên."
+                    title="No attendance records yet"
+                    description="Records will appear when an ESP32-CAM device recognizes a student."
                 />
             ) : (
                 <div className="divide-y divide-border">
@@ -55,7 +55,7 @@ export default function RecentAttendance() {
                             <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-medium text-text">{rec.student_name || rec.student_id}</div>
                                 <div className="font-data truncate text-xs text-text-tertiary">
-                                    {rec.student_id} · {rec.class_names || 'Chưa xếp lớp'}
+                                    {rec.student_id} · {rec.class_names || 'Unassigned'}
                                 </div>
                             </div>
                             <div className="shrink-0 space-y-1 text-right">

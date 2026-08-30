@@ -32,7 +32,7 @@ export default function Classes() {
             const res = await getClasses()
             setClasses(Array.isArray(res?.data) ? res.data : [])
         } catch (err) {
-            showError(err.message || 'Không thể tải danh sách lớp', 'Lỗi')
+            showError(err.message || 'Could not load classes', 'Error')
         } finally {
             setLoading(false)
         }
@@ -65,15 +65,15 @@ export default function Classes() {
         try {
             if (modalMode === 'create') {
                 await createClass(formData)
-                showSuccess('Đã thêm lớp học mới', 'Thành công')
+                showSuccess('Class created', 'Success')
             } else if (modalMode === 'edit') {
                 await updateClass(selectedClass.class_id, formData)
-                showSuccess('Đã cập nhật thông tin lớp', 'Thành công')
+                showSuccess('Class updated', 'Success')
             }
             setModalMode(null)
             fetchClasses()
         } catch (err) {
-            showError(err.response?.data?.message || err.message || 'Thao tác thất bại', 'Lỗi')
+            showError(err.response?.data?.message || err.message || 'Operation failed', 'Error')
         } finally {
             setIsSubmitting(false)
         }
@@ -84,11 +84,11 @@ export default function Classes() {
         setIsSubmitting(true)
         try {
             await deleteClass(selectedClass.class_id)
-            showSuccess('Đã xóa lớp học', 'Thành công')
+            showSuccess('Class deleted', 'Success')
             setModalMode(null)
             fetchClasses()
         } catch (err) {
-            showError(err.response?.data?.message || err.message || 'Không thể xóa lớp', 'Lỗi')
+            showError(err.response?.data?.message || err.message || 'Could not delete class', 'Error')
         } finally {
             setIsSubmitting(false)
         }
@@ -105,7 +105,7 @@ export default function Classes() {
                 title={
                     <span className="inline-flex items-center gap-2.5">
                         {t('classesManagement')}
-                        <Badge>{filteredClasses.length} lớp</Badge>
+                        <Badge>{filteredClasses.length} classes</Badge>
                     </span>
                 }
                 description={t('classesManagementDesc')}
@@ -113,11 +113,11 @@ export default function Classes() {
                     <>
                         <Button variant="secondary" size="sm" onClick={fetchClasses}>
                             <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                            Làm mới
+                            Refresh
                         </Button>
                         <Button size="sm" onClick={handleOpenCreate}>
                             <HiOutlinePlus className="h-4 w-4" />
-                            Tạo lớp mới
+                            Create class
                         </Button>
                     </>
                 }
@@ -126,17 +126,17 @@ export default function Classes() {
             <SearchInput
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm theo mã lớp, tên lớp..."
+                placeholder="Search by class ID or name..."
                 className="max-w-md"
             />
 
             {loading ? (
                 <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
                     <Spinner size="sm" />
-                    Đang tải danh sách lớp học...
+                    Loading classes...
                 </div>
             ) : filteredClasses.length === 0 ? (
-                <EmptyState title="Không tìm thấy lớp học nào" />
+                <EmptyState title="No classes found" />
             ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredClasses.map((cls) => (
@@ -154,7 +154,7 @@ export default function Classes() {
 
                                 <div className="grid grid-cols-2 gap-3 rounded-card border border-border bg-surface-sunken p-3 text-xs">
                                     <div>
-                                        <span className="font-data text-[10px] uppercase text-text-tertiary">Sinh viên</span>
+                                        <span className="font-data text-[10px] uppercase text-text-tertiary">Students</span>
                                         <div className="mt-0.5 flex items-center gap-1.5 font-medium text-text">
                                             <HiOutlineUsers className="h-3.5 w-3.5 text-text-tertiary" />
                                             {cls.actual_student_count ?? cls.number_of_students ?? 0}
@@ -164,7 +164,7 @@ export default function Classes() {
                                         <span className="font-data text-[10px] uppercase text-text-tertiary">Rekognition</span>
                                         <div className="mt-0.5 flex items-center gap-1.5 font-medium text-present">
                                             <RiFingerprintLine className="h-3.5 w-3.5" />
-                                            Đã liên kết
+                                            Connected
                                         </div>
                                     </div>
                                 </div>
@@ -176,20 +176,20 @@ export default function Classes() {
                                     className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
                                 >
                                     <RiFingerprintLine className="h-3.5 w-3.5" />
-                                    Quản lý khuôn mặt
+                                    Manage faces
                                 </Link>
 
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={() => handleOpenEdit(cls)}
-                                        title="Chỉnh sửa"
+                                        title="Edit"
                                         className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text"
                                     >
                                         <HiOutlinePencil className="h-4 w-4" />
                                     </button>
                                     <button
                                         onClick={() => handleOpenDelete(cls)}
-                                        title="Xóa lớp"
+                                        title="Delete class"
                                         className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
                                     >
                                         <HiOutlineTrash className="h-4 w-4" />
@@ -204,35 +204,35 @@ export default function Classes() {
             <Modal
                 isOpen={modalMode === 'create' || modalMode === 'edit'}
                 onClose={() => setModalMode(null)}
-                title={modalMode === 'create' ? 'Tạo lớp học mới' : 'Chỉnh sửa lớp học'}
+                title={modalMode === 'create' ? 'Create a class' : 'Edit class'}
                 footer={
                     <>
                         <Button variant="secondary" onClick={() => setModalMode(null)}>
-                            Hủy
+                            Cancel
                         </Button>
                         <Button type="submit" form="class-form" loading={isSubmitting}>
-                            Lưu thông tin
+                            Save details
                         </Button>
                     </>
                 }
             >
                 <form id="class-form" onSubmit={handleSubmitForm} className="space-y-4">
-                    <Field label="Mã lớp" required>
+                    <Field label="Class ID" required>
                         <Input
                             required
                             disabled={modalMode === 'edit'}
                             value={formData.class_id}
                             onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                            placeholder="Ví dụ: D22CQCI01-N"
+                            placeholder="Example: CS-2026-A"
                             className="font-data"
                         />
                     </Field>
-                    <Field label="Tên lớp" required>
+                    <Field label="Class name" required>
                         <Input
                             required
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="Ví dụ: Công nghệ Thông tin 01 CLC"
+                            placeholder="Example: Computer Science A"
                         />
                     </Field>
                 </form>
@@ -241,22 +241,21 @@ export default function Classes() {
             <Modal
                 isOpen={modalMode === 'delete'}
                 onClose={() => setModalMode(null)}
-                title="Xác nhận xóa lớp"
+                title="Delete class"
                 footer={
                     <>
                         <Button variant="secondary" onClick={() => setModalMode(null)}>
-                            Hủy
+                            Cancel
                         </Button>
                         <Button variant="danger" onClick={handleDeleteConfirm} loading={isSubmitting}>
-                            Xác nhận xóa
+                            Delete class
                         </Button>
                     </>
                 }
             >
                 <p className="text-sm text-text-secondary">
-                    Bạn có chắc chắn muốn xóa lớp{' '}
-                    <span className="font-data font-semibold text-text">{selectedClass?.class_id}</span>? Thao tác này
-                    không thể hoàn tác.
+                    Delete class <span className="font-data font-semibold text-text">{selectedClass?.class_id}</span>?
+                    This action cannot be undone.
                 </p>
             </Modal>
         </div>

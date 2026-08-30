@@ -92,11 +92,11 @@ export default function Students() {
         setIsDeleting(true)
         try {
             await deleteStudent(studentToDelete.id)
-            showSuccess(`Đã xóa sinh viên ${studentToDelete.name}`, 'Thành công')
+            showSuccess(`Deleted ${studentToDelete.name}`, 'Success')
             setDeleteModalOpen(false)
             fetchStudentsData()
         } catch (err) {
-            showError(err.response?.data?.message || err.message || 'Không thể xóa sinh viên', 'Lỗi')
+            showError(err.response?.data?.message || err.message || 'Could not delete student', 'Error')
         } finally {
             setIsDeleting(false)
         }
@@ -108,7 +108,7 @@ export default function Students() {
                 title={
                     <span className="inline-flex items-center gap-2.5">
                         {t('studentsManagement')}
-                        <Badge>{filteredStudents.length} sinh viên</Badge>
+                        <Badge>{filteredStudents.length} students</Badge>
                     </span>
                 }
                 description={t('studentsManagementDesc')}
@@ -116,11 +116,11 @@ export default function Students() {
                     <>
                         <Button variant="secondary" size="sm" onClick={fetchStudentsData}>
                             <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                            Làm mới
+                            Refresh
                         </Button>
                         <Button size="sm" onClick={() => setAddFaceModalOpen(true)}>
                             <HiOutlinePlus className="h-4 w-4" />
-                            Thêm sinh viên / Face ID
+                            Add student / Face ID
                         </Button>
                     </>
                 }
@@ -130,11 +130,11 @@ export default function Students() {
                 <SearchInput
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Tìm kiếm theo họ tên, MSSV..."
+                    placeholder="Search by name or student ID..."
                     className="flex-1"
                 />
                 <Select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="sm:w-60">
-                    <option value="all">Tất cả các lớp</option>
+                    <option value="all">All classes</option>
                     {classesList.map((c) => (
                         <option key={c.class_id} value={c.class_id}>
                             {c.class_id} — {c.class_name}
@@ -146,18 +146,18 @@ export default function Students() {
             {loading ? (
                 <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
                     <Spinner size="sm" />
-                    Đang tải danh sách sinh viên...
+                    Loading students...
                 </div>
             ) : filteredStudents.length === 0 ? (
-                <EmptyState title="Không tìm thấy sinh viên nào" />
+                <EmptyState title="No students found" />
             ) : (
                 <Table>
                     <THead>
-                        <TH>Sinh viên</TH>
-                        <TH>Lớp</TH>
-                        <TH>Liên hệ</TH>
-                        <TH>Khuôn mặt</TH>
-                        <TH className="text-right">Thao tác</TH>
+                        <TH>Student</TH>
+                        <TH>Class</TH>
+                        <TH>Contact</TH>
+                        <TH>Face ID</TH>
+                        <TH className="text-right">Actions</TH>
                     </THead>
                     <TBody>
                         {filteredStudents.map((student) => (
@@ -179,7 +179,7 @@ export default function Students() {
                                 <TD>
                                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary">
                                         <RiFingerprintLine className="h-4 w-4" />
-                                        Xem tại Quản lý khuôn mặt
+                                        View in face management
                                     </span>
                                 </TD>
                                 <TD>
@@ -189,7 +189,7 @@ export default function Students() {
                                                 setSelectedStudent(student)
                                                 setDetailModalOpen(true)
                                             }}
-                                            title="Xem chi tiết"
+                                            title="View details"
                                             className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text"
                                         >
                                             <HiOutlineEye className="h-4 w-4" />
@@ -199,7 +199,7 @@ export default function Students() {
                                                 setStudentToDelete(student)
                                                 setDeleteModalOpen(true)
                                             }}
-                                            title="Xóa sinh viên"
+                                            title="Delete student"
                                             className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
                                         >
                                             <HiOutlineTrash className="h-4 w-4" />
@@ -214,30 +214,35 @@ export default function Students() {
 
             <StudentDetailModal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} student={selectedStudent} />
 
-            <AddFaceModal isOpen={addFaceModalOpen} onClose={() => setAddFaceModalOpen(false)} onAdded={fetchStudentsData} />
+            <AddFaceModal
+                isOpen={addFaceModalOpen}
+                onClose={() => setAddFaceModalOpen(false)}
+                onAdded={fetchStudentsData}
+                withStudentRecord
+            />
 
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Xác nhận xóa sinh viên"
+                title="Delete student"
                 footer={
                     <>
                         <Button variant="secondary" onClick={() => setDeleteModalOpen(false)}>
-                            Hủy
+                            Cancel
                         </Button>
                         <Button variant="danger" onClick={handleDeleteStudent} loading={isDeleting}>
-                            Xóa sinh viên
+                            Delete student
                         </Button>
                     </>
                 }
             >
                 <div className="space-y-3">
                     <p className="text-sm text-text-secondary">
-                        Bạn có chắc chắn muốn xóa sinh viên <span className="font-semibold text-text">{studentToDelete?.name}</span> (
-                        <span className="font-data">{studentToDelete?.id}</span>) khỏi hệ thống?
+                        Delete <span className="font-semibold text-text">{studentToDelete?.name}</span> (
+                        <span className="font-data">{studentToDelete?.id}</span>) from SATS X?
                     </p>
                     <div className="rounded-card border border-danger/20 bg-danger/5 p-3 text-xs text-danger">
-                        Hành động này sẽ xóa sinh viên khỏi tất cả danh sách lớp và môn học liên quan.
+                        This removes the student from all linked classes and subjects.
                     </div>
                 </div>
             </Modal>

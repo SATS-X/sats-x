@@ -23,7 +23,7 @@ export default function Toast({ toast, onClose }) {
             <button
                 onClick={() => onClose(toast.id)}
                 className="shrink-0 rounded-card p-1 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text"
-                aria-label="Đóng"
+                aria-label="Close"
             >
                 <HiX className="h-4 w-4" />
             </button>

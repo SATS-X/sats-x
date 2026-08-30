@@ -5,8 +5,7 @@ import { HiOutlineLogout, HiX } from 'react-icons/hi'
 import { DASHBOARD_SIDEBAR_LINKS, DASHBOARD_SIDEBAR_BOTTOM_LINKS } from '../../lib/constants/Sidebar'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useAuth } from '../../contexts/AuthContext'
-import { Avatar } from '../ui'
-import ptitLogo from '../../assets/images/ptit-bg.png'
+import { Avatar, BrandMark } from '../ui'
 import WebSocketStatus from './WebSocketStatus'
 
 export default function Sidebar({ onClose }) {
@@ -14,22 +13,14 @@ export default function Sidebar({ onClose }) {
     const { user, logout } = useAuth()
 
     return (
-        <aside className="flex h-full w-72 flex-col justify-between border-r border-border bg-surface p-4">
+        <aside className="flex h-full w-72 flex-col justify-between border-r border-border bg-surface/95 p-4 backdrop-blur-xl">
             <div className="min-h-0">
                 <div className="mb-4 flex items-center justify-between px-1 py-2">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-card border border-border bg-white p-1">
-                            <img src={ptitLogo} alt="PTIT" className="h-full w-full object-contain" />
-                        </div>
-                        <div>
-                            <div className="text-sm font-semibold leading-none text-text">PTIT Attendance</div>
-                            <div className="mt-1 text-xs text-text-tertiary">Smart Biometrics</div>
-                        </div>
-                    </div>
+                    <BrandMark />
                     {onClose && (
                         <button
                             onClick={onClose}
-                            aria-label="Đóng menu"
+                            aria-label="Close menu"
                             className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text lg:hidden"
                         >
                             <HiX className="h-5 w-5" />
@@ -53,12 +44,11 @@ export default function Sidebar({ onClose }) {
                     <SidebarLink key={link.key} link={link} onClose={onClose} />
                 ))}
 
-                {/* Thẻ mini của người dùng — echo cấu trúc thẻ định danh dùng xuyên suốt app. */}
                 <div className="mt-2 flex items-center gap-2.5 rounded-card border border-border bg-surface-sunken px-2.5 py-2">
                     <Avatar name={user?.full_name || user?.email} size="sm" />
                     <div className="min-w-0 flex-1">
-                        <div className="truncate text-xs font-medium text-text">{user?.full_name || user?.email || 'Người dùng'}</div>
-                        <div className="truncate text-[11px] capitalize text-text-tertiary">{user?.role || 'Giảng viên'}</div>
+                        <div className="truncate text-xs font-medium text-text">{user?.full_name || user?.email || 'User'}</div>
+                        <div className="truncate text-[11px] capitalize text-text-tertiary">{user?.role || 'Instructor'}</div>
                     </div>
                     <button
                         onClick={logout}
@@ -83,10 +73,10 @@ function SidebarLink({ link, onClose }) {
             to={link.path}
             onClick={onClose}
             className={classNames(
-                'flex items-center gap-3 rounded-card border-l-[3px] px-2.5 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-card px-3 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.98]',
                 isActive
-                    ? 'border-accent bg-accent/[0.07] text-accent'
-                    : 'border-transparent text-text-secondary hover:bg-surface-hover hover:text-text'
+                    ? 'brand-gradient surface-glow text-white'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text'
             )}
         >
             <span className="text-lg leading-none">{link.icon}</span>

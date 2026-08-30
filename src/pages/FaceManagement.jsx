@@ -11,9 +11,9 @@ import AddFaceModal from '../components/FaceManagement/AddFaceModal'
 import { Avatar, Badge, Button, EmptyState, Modal, PageHeader, SearchInput, Spinner, StatusChip } from '../components/ui'
 
 const CLASS_COLLECTIONS = [
-    { id: 'D22CQCI01-N', name: 'Lớp D22CQCI01-N' },
-    { id: 'D22CQCI01-B', name: 'Lớp D22CQCI01-B' },
-    { id: 'D22CQVT01-N', name: 'Lớp D22CQVT01-N' }
+    { id: 'D22CQCI01-N', name: 'Class D22CQCI01-N' },
+    { id: 'D22CQCI01-B', name: 'Class D22CQCI01-B' },
+    { id: 'D22CQVT01-N', name: 'Class D22CQVT01-N' }
 ]
 
 export default function FaceManagement() {
@@ -34,7 +34,7 @@ export default function FaceManagement() {
 
     const fetchClassFaces = (classId) => {
         if (!isConnected) {
-            showInfo('Đang kết nối tới AWS Gateway...', 'WebSocket')
+            showInfo('Connecting to AWS Gateway...', 'WebSocket')
             return
         }
         setLoading(true)
@@ -55,10 +55,10 @@ export default function FaceManagement() {
             setIsDeleting(false)
             setDeleteModalOpen(false)
             if (res?.status === 'success') {
-                showSuccess('Đã xoá khuôn mặt khỏi bộ sưu tập', 'Thành công')
+                showSuccess('Face removed from collection', 'Success')
                 fetchClassFaces(selectedClassId)
             } else {
-                showError(res?.message || 'Không thể xoá khuôn mặt', 'Lỗi')
+                showError(res?.message || 'Could not remove face', 'Error')
             }
         })
         return () => {
@@ -104,11 +104,11 @@ export default function FaceManagement() {
                     <>
                         <Button variant="secondary" size="sm" onClick={() => fetchClassFaces(selectedClassId)}>
                             <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                            Đồng bộ
+                            Sync
                         </Button>
                         <Button size="sm" onClick={() => setAddModalOpen(true)}>
                             <HiOutlinePlus className="h-4 w-4" />
-                            Đăng ký khuôn mặt
+                            Register face
                         </Button>
                     </>
                 }
@@ -145,7 +145,7 @@ export default function FaceManagement() {
                             Collection: attendance-system-{selectedClassId}
                         </div>
                         <div className="mt-0.5 text-xs text-text-secondary">
-                            Đã lập chỉ mục <span className="font-data font-medium text-text">{faces.length}</span> khuôn mặt sinh viên
+                            <span className="font-data font-medium text-text">{faces.length}</span> student faces indexed
                         </div>
                     </div>
                 </div>
@@ -153,7 +153,7 @@ export default function FaceManagement() {
                 <SearchInput
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Tìm theo MSSV, Face ID..."
+                    placeholder="Search student ID or Face ID..."
                     className="w-full md:w-72"
                 />
             </div>
@@ -161,17 +161,17 @@ export default function FaceManagement() {
             {loading ? (
                 <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
                     <Spinner size="sm" />
-                    Đang truy vấn AWS Rekognition Collection...
+                    Querying AWS Rekognition collection...
                 </div>
             ) : filteredFaces.length === 0 ? (
                 <EmptyState
                     icon={RiFingerprintLine}
-                    title={`Chưa có khuôn mặt nào trong bộ sưu tập ${selectedClassId}`}
-                    description={'Nhấn "Đăng ký khuôn mặt" để thêm ảnh sinh viên đầu tiên.'}
+                    title={`No faces in collection ${selectedClassId}`}
+                    description={'Select "Register face" to add the first student image.'}
                     action={
                         <Button size="sm" onClick={() => setAddModalOpen(true)}>
                             <HiOutlinePlus className="h-4 w-4" />
-                            Thêm khuôn mặt ngay
+                            Add a face
                         </Button>
                     }
                 />
@@ -187,7 +187,7 @@ export default function FaceManagement() {
                                     <Avatar src={photoUrl} name={studentId} size="xl" className="rounded-none border-0" />
                                     <div className="absolute right-2 top-2">
                                         <StatusChip variant="present">
-                                            {face.confidence ? `${Math.round(face.confidence)}%` : 'Đã lập chỉ mục'}
+                                            {face.confidence ? `${Math.round(face.confidence)}%` : 'Indexed'}
                                         </StatusChip>
                                     </div>
                                 </div>
@@ -203,13 +203,13 @@ export default function FaceManagement() {
                                 </div>
 
                                 <div className="flex items-center justify-between border-t border-border pt-2.5">
-                                    <span className="text-[11px] font-medium text-present">Đang hoạt động</span>
+                                    <span className="text-[11px] font-medium text-present">Active</span>
                                     <button
                                         onClick={() => {
                                             setSelectedFaceToDelete(face)
                                             setDeleteModalOpen(true)
                                         }}
-                                        title="Xóa khuôn mặt khỏi AWS"
+                                        title="Remove face from AWS"
                                         className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
                                     >
                                         <HiOutlineTrash className="h-4 w-4" />
@@ -231,26 +231,26 @@ export default function FaceManagement() {
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Xác nhận xóa Face ID"
+                title="Delete Face ID"
                 footer={
                     <>
                         <Button variant="secondary" onClick={() => setDeleteModalOpen(false)}>
-                            Hủy
+                            Cancel
                         </Button>
                         <Button variant="danger" onClick={handleDeleteConfirm} loading={isDeleting}>
-                            Xóa vĩnh viễn
+                            Delete permanently
                         </Button>
                     </>
                 }
             >
                 <div className="space-y-3">
                     <p className="text-sm text-text-secondary">
-                        Bạn có chắc chắn muốn xóa khuôn mặt của sinh viên{' '}
-                        <span className="font-data font-semibold text-text">{selectedFaceToDelete?.externalImageId}</span> khỏi bộ sưu tập
-                        AWS Rekognition và xoá ảnh trên S3?
+                        Delete the face record for student{' '}
+                        <span className="font-data font-semibold text-text">{selectedFaceToDelete?.externalImageId}</span> from AWS Rekognition
+                        and remove its image from S3?
                     </p>
                     <div className="rounded-card border border-danger/20 bg-danger/5 p-3 text-xs text-danger">
-                        Hành động này không thể hoàn tác. Sinh viên sẽ không thể điểm danh tự động cho đến khi được đăng ký lại.
+                        This cannot be undone. Automatic attendance will remain unavailable until the face is registered again.
                     </div>
                 </div>
             </Modal>

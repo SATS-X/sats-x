@@ -3,7 +3,7 @@ import classNames from 'classnames'
 
 /** Container mặt phẳng dùng cho panel/bảng — không dùng để dựng dàn ý trang bằng lưới ô đều nhau. */
 const Card = ({ children, className, padded = true }) => (
-    <div className={classNames('rounded-card border border-border bg-surface', padded && 'p-5', className)}>
+    <div className={classNames('rounded-card border border-border bg-surface/90 shadow-[0_16px_50px_-40px_rgb(var(--color-accent)/0.45)] backdrop-blur-sm', padded && 'p-5', className)}>
         {children}
     </div>
 )

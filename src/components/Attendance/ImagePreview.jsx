@@ -3,7 +3,7 @@ import { HiOutlineAcademicCap, HiOutlineClock } from 'react-icons/hi'
 import { Avatar, Button, Modal, StatusChip } from '../ui'
 
 const REMARK_VARIANT = { 'On Time': 'present', Late: 'late', Absent: 'absent' }
-const REMARK_LABEL = { 'On Time': 'Đúng giờ', Late: 'Trễ', Absent: 'Vắng' }
+const REMARK_LABEL = { 'On Time': 'On time', Late: 'Late', Absent: 'Absent' }
 
 export default function ImagePreview({ isOpen, onClose, attendanceRecord }) {
     if (!attendanceRecord) return null
@@ -15,10 +15,10 @@ export default function ImagePreview({ isOpen, onClose, attendanceRecord }) {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Chi tiết điểm danh"
+            title="Attendance details"
             footer={
                 <Button variant="secondary" onClick={onClose}>
-                    Đóng
+                    Close
                 </Button>
             }
         >
@@ -33,8 +33,8 @@ export default function ImagePreview({ isOpen, onClose, attendanceRecord }) {
                 </div>
 
                 <div className="space-y-2 text-sm">
-                    <Row icon={HiOutlineAcademicCap} label="Lớp học" value={className || '—'} mono />
-                    <Row icon={HiOutlineClock} label="Thời gian ghi nhận" value={`${time || '—'} · ${day}/${month}/${year}`} mono />
+                    <Row icon={HiOutlineAcademicCap} label="Class" value={className || '—'} mono />
+                    <Row icon={HiOutlineClock} label="Recorded at" value={`${time || '—'} · ${day}/${month}/${year}`} mono />
                 </div>
             </div>
         </Modal>

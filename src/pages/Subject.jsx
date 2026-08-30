@@ -23,7 +23,7 @@ export default function Subject() {
             const res = await getSubjectsByTeacherId(user.teacher_id)
             setSubjects(res?.success ? res.data : [])
         } catch (err) {
-            showError(err.response?.data?.message || err.message || 'Không thể tải danh sách môn học', 'Lỗi')
+            showError(err.response?.data?.message || err.message || 'Could not load subjects', 'Error')
         } finally {
             setLoading(false)
         }
@@ -44,14 +44,14 @@ export default function Subject() {
                 title={
                     <span className="inline-flex items-center gap-2.5">
                         {t('mySubjects')}
-                        <Badge>{filteredSubjects.length} môn học</Badge>
+                        <Badge>{filteredSubjects.length} subjects</Badge>
                     </span>
                 }
                 description={t('manageSubjects')}
                 actions={
                     <Button variant="secondary" size="sm" onClick={fetchSubjects}>
                         <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                        Làm mới
+                        Refresh
                     </Button>
                 }
             />
@@ -59,17 +59,17 @@ export default function Subject() {
             <SearchInput
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm môn học theo tên, mã môn..."
+                placeholder="Search by subject name or code..."
                 className="max-w-md"
             />
 
             {loading ? (
                 <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
                     <Spinner size="sm" />
-                    Đang tải danh sách môn học...
+                    Loading subjects...
                 </div>
             ) : filteredSubjects.length === 0 ? (
-                <EmptyState title="Không tìm thấy môn học nào" />
+                <EmptyState title="No subjects found" />
             ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredSubjects.map((sub) => (
@@ -82,15 +82,15 @@ export default function Subject() {
 
                                 <div className="space-y-1.5 rounded-card border border-border bg-surface-sunken p-3 text-xs">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-text-tertiary">Giảng viên</span>
+                                        <span className="text-text-tertiary">Instructor</span>
                                         <span className="font-medium text-text">{sub.teacher_name || '—'}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-text-tertiary">Sinh viên đăng ký</span>
+                                        <span className="text-text-tertiary">Enrolled students</span>
                                         <span className="font-data font-medium text-text">{sub.student_count ?? 0}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-text-tertiary">Số lớp</span>
+                                        <span className="text-text-tertiary">Classes</span>
                                         <span className="font-data font-medium text-text">{sub.class_count ?? 0}</span>
                                     </div>
                                 </div>
@@ -102,10 +102,10 @@ export default function Subject() {
                                     className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
                                 >
                                     <HiOutlineCalendar className="h-3.5 w-3.5" />
-                                    Xem lịch dạy
+                                    View schedule
                                 </Link>
                                 <Link to="/attendance">
-                                    <Button size="sm">Điểm danh</Button>
+                                    <Button size="sm">Attendance</Button>
                                 </Link>
                             </div>
                         </div>

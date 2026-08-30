@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { HiOutlineDownload, HiOutlineRefresh, HiOutlineEye, HiOutlineCamera } from 'react-icons/hi'
 import { getAllAttendance } from '../api/attendance/getAttendance'
 import { getClasses } from '../api/class/getClasses'
@@ -25,11 +25,11 @@ import {
 } from '../components/ui'
 
 const REMARK_VARIANT = { 'On Time': 'present', Late: 'late', Absent: 'absent' }
-const REMARK_LABEL = { 'On Time': 'Đúng giờ', Late: 'Trễ', Absent: 'Vắng' }
+const REMARK_LABEL = { 'On Time': 'On time', Late: 'Late', Absent: 'Absent' }
 
 export default function Attendance() {
     const { t } = useLanguage()
-    const { showInfo, showError } = useToast()
+    const { showInfo, showSuccess, showError } = useToast()
     const { subscribe, sendMessage, isConnected } = useWebSocket()
     const [triggering, setTriggering] = useState(false)
 
@@ -54,7 +54,7 @@ export default function Attendance() {
             if (attRes.status === 'fulfilled' && attRes.value?.success) setAttendanceData(attRes.value.data)
             if (clsRes.status === 'fulfilled' && clsRes.value?.success) setClassesList(clsRes.value.data)
         } catch (err) {
-            showError(err.message || 'Không thể tải dữ liệu điểm danh', 'Lỗi')
+            showError(err.message || 'Could not load attendance records', 'Error')
         } finally {
             setLoading(false)
         }
@@ -62,6 +62,22 @@ export default function Attendance() {
 
     useEffect(() => {
         fetchAttendanceData()
+    }, [])
+
+    // Dọn subscription + timer đang chờ khi rời trang trước khi có phản hồi —
+    // nếu không, closure cũ (showSuccess/showError/setTriggering của lần render
+    // đã unmount) vẫn nằm trong messageHandlersRef của WebSocketProvider (sống ở
+    // App root, không unmount theo route) và có thể bị gọi nhầm về sau.
+    const pendingCaptureRef = useRef(null)
+
+    useEffect(() => {
+        return () => {
+            if (pendingCaptureRef.current) {
+                clearTimeout(pendingCaptureRef.current.safetyTimer)
+                pendingCaptureRef.current.unsubscribe()
+                pendingCaptureRef.current = null
+            }
+        }
     }, [])
 
     // Lambda "compare" chỉ trả lời về đúng connection đã gửi yêu cầu compare —
@@ -76,25 +92,30 @@ export default function Attendance() {
         // được...), tự tắt trạng thái loading thay vì treo nút mãi mãi.
         const safetyTimer = setTimeout(() => {
             unsubscribe()
+            pendingCaptureRef.current = null
             setTriggering(false)
         }, 8000)
 
         const unsubscribe = subscribe('triggerCapture', (data) => {
             clearTimeout(safetyTimer)
             unsubscribe()
+            pendingCaptureRef.current = null
             setTriggering(false)
             if (data?.status === 'success') {
-                showSuccess(data.message || 'Đã gửi lệnh chụp ảnh tới thiết bị', 'Kích hoạt camera')
+                showSuccess(data.message || 'Capture command sent to device', 'Camera triggered')
                 setTimeout(fetchAttendanceData, 6000)
             } else {
-                showError(data?.message || 'Không gửi được lệnh tới thiết bị', 'Lỗi')
+                showError(data?.message || 'Could not send command to device', 'Error')
             }
         })
+
+        pendingCaptureRef.current = { safetyTimer, unsubscribe }
 
         const sent = sendMessage({ action: 'triggerCapture' })
         if (!sent) {
             clearTimeout(safetyTimer)
             unsubscribe()
+            pendingCaptureRef.current = null
             setTriggering(false)
         }
     }
@@ -117,7 +138,7 @@ export default function Attendance() {
     }, [filteredData, currentPage])
 
     const exportCSV = () => {
-        const headers = ['MSSV', 'Họ tên', 'Lớp', 'Ngày', 'Giờ', 'Trạng thái']
+        const headers = ['Student ID', 'Full name', 'Class', 'Date', 'Time', 'Status']
         const rows = filteredData.map((r) => [
             r.student_id || '',
             r.student_name || '',
@@ -133,7 +154,7 @@ export default function Attendance() {
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-        showInfo('Đã xuất file điểm danh CSV', 'Xuất báo cáo')
+        showInfo('Attendance CSV exported', 'Export complete')
     }
 
     return (
@@ -150,21 +171,21 @@ export default function Attendance() {
                     <>
                         <Button variant="secondary" size="sm" onClick={fetchAttendanceData}>
                             <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                            Làm mới
+                            Refresh
                         </Button>
                         <Button
                             variant="secondary"
                             size="sm"
                             disabled={!isConnected || triggering}
                             onClick={handleTriggerCapture}
-                            title={isConnected ? undefined : 'WebSocket chưa kết nối tới AWS Gateway'}
+                            title={isConnected ? undefined : 'WebSocket is not connected to AWS Gateway'}
                         >
                             <HiOutlineCamera className={triggering ? 'h-4 w-4 animate-pulse' : 'h-4 w-4'} />
-                            {triggering ? 'Đang gửi lệnh...' : 'Chụp ảnh ngay'}
+                            {triggering ? 'Sending command...' : 'Capture now'}
                         </Button>
                         <Button size="sm" onClick={exportCSV}>
                             <HiOutlineDownload className="h-4 w-4" />
-                            Xuất CSV
+                            Export CSV
                         </Button>
                     </>
                 }
@@ -177,7 +198,7 @@ export default function Attendance() {
                         setSearchTerm(e.target.value)
                         setCurrentPage(1)
                     }}
-                    placeholder="Tìm theo tên, mã sinh viên..."
+                    placeholder="Search by name or student ID..."
                 />
                 <Select
                     value={selectedClass}
@@ -186,7 +207,7 @@ export default function Attendance() {
                         setCurrentPage(1)
                     }}
                 >
-                    <option value="all">Tất cả các lớp</option>
+                    <option value="all">All classes</option>
                     {classesList.map((c) => (
                         <option key={c.class_id} value={c.class_id}>
                             {c.class_id}
@@ -200,30 +221,30 @@ export default function Attendance() {
                         setCurrentPage(1)
                     }}
                 >
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="On Time">Đúng giờ</option>
-                    <option value="Late">Trễ</option>
-                    <option value="Absent">Vắng</option>
+                    <option value="all">All statuses</option>
+                    <option value="On Time">On time</option>
+                    <option value="Late">Late</option>
+                    <option value="Absent">Absent</option>
                 </Select>
             </div>
 
             {loading ? (
                 <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
                     <Spinner size="sm" />
-                    Đang tải dữ liệu điểm danh...
+                    Loading attendance records...
                 </div>
             ) : paginatedData.length === 0 ? (
-                <EmptyState title="Không tìm thấy bản ghi điểm danh nào phù hợp" />
+                <EmptyState title="No matching attendance records" />
             ) : (
                 <>
                     <Table>
                         <THead>
-                            <TH>Sinh viên</TH>
-                            <TH>Lớp học</TH>
-                            <TH>Thời gian</TH>
-                            <TH>Ngày</TH>
-                            <TH>Trạng thái</TH>
-                            <TH className="text-right">Chi tiết</TH>
+                            <TH>Student</TH>
+                            <TH>Class</TH>
+                            <TH>Time</TH>
+                            <TH>Date</TH>
+                            <TH>Status</TH>
+                            <TH className="text-right">Details</TH>
                         </THead>
                         <TBody>
                             {paginatedData.map((record, index) => (
@@ -266,13 +287,13 @@ export default function Attendance() {
 
                     <div className="flex items-center justify-between text-xs text-text-secondary">
                         <div>
-                            Hiển thị <span className="font-medium text-text">{(currentPage - 1) * pageSize + 1}</span> đến{' '}
-                            <span className="font-medium text-text">{Math.min(currentPage * pageSize, filteredData.length)}</span> trong tổng
-                            số <span className="font-medium text-text">{filteredData.length}</span> bản ghi
+                            Showing <span className="font-medium text-text">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                            <span className="font-medium text-text">{Math.min(currentPage * pageSize, filteredData.length)}</span> of{' '}
+                            <span className="font-medium text-text">{filteredData.length}</span> records
                         </div>
                         <div className="flex items-center gap-2">
                             <Button variant="secondary" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
-                                Trang trước
+                                Previous page
                             </Button>
                             <span className="font-data px-2">
                                 {currentPage} / {totalPages}

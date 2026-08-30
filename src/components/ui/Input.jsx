@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import classNames from 'classnames'
 
 const baseClass =
-    'h-9 w-full rounded-card border border-border bg-surface px-3 text-sm text-text placeholder:text-text-tertiary transition-colors hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-50'
+    'h-10 w-full rounded-card border border-border bg-surface/80 px-3 text-sm text-text placeholder:text-text-tertiary transition-all duration-200 hover:border-border-strong focus:border-accent disabled:cursor-not-allowed disabled:opacity-50'
 
 export const Input = forwardRef(({ className, invalid, ...rest }, ref) => (
     <input

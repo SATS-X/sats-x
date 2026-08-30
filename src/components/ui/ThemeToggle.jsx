@@ -9,8 +9,8 @@ const ThemeToggle = () => {
         <button
             type="button"
             onClick={toggleTheme}
-            aria-label={isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
-            title={isDark ? 'Giao diện sáng' : 'Giao diện tối'}
+            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={isDark ? 'Light theme' : 'Dark theme'}
             className="flex h-9 w-9 items-center justify-center rounded-card text-text-secondary transition-colors hover:bg-surface-hover hover:text-text"
         >
             {isDark ? <HiOutlineSun className="h-[18px] w-[18px]" /> : <HiOutlineMoon className="h-[18px] w-[18px]" />}

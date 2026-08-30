@@ -7,7 +7,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"IBM Plex Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+                sans: ['"Outfit"', 'system-ui', '-apple-system', 'sans-serif'],
                 mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace']
             },
             colors: {
@@ -23,14 +23,15 @@ export default {
                 accent: 'rgb(var(--color-accent) / <alpha-value>)',
                 'accent-hover': 'rgb(var(--color-accent-hover) / <alpha-value>)',
                 'accent-foreground': 'rgb(var(--color-accent-foreground) / <alpha-value>)',
+                'brand-end': 'rgb(var(--color-brand-end) / <alpha-value>)',
                 present: 'rgb(var(--color-present) / <alpha-value>)',
                 late: 'rgb(var(--color-late) / <alpha-value>)',
                 absent: 'rgb(var(--color-absent) / <alpha-value>)',
                 danger: 'rgb(var(--color-danger) / <alpha-value>)'
             },
             borderRadius: {
-                card: '0.625rem' /* 10px — bo góc kiểu thẻ, không phải "bubble" glass */,
-                chip: '0.375rem' /* 6px — dải trạng thái, cố tình không bo tròn thành pill */
+                card: '0.875rem',
+                chip: '0.5rem'
             },
             boxShadow: {
                 elevated: 'var(--shadow-elevated)' /* chỉ dùng cho dropdown/modal nổi trên nội dung */

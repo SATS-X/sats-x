@@ -11,10 +11,10 @@ export default function StudentDetailModal({ isOpen, onClose, student }) {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Hồ sơ sinh viên"
+            title="Student profile"
             footer={
                 <Button variant="secondary" onClick={onClose}>
-                    Đóng
+                    Close
                 </Button>
             }
         >
@@ -24,22 +24,22 @@ export default function StudentDetailModal({ isOpen, onClose, student }) {
                     <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center justify-between gap-2">
                             <h3 className="truncate text-base font-semibold text-text">{student.name}</h3>
-                            <StatusChip variant={isActive ? 'present' : 'neutral'}>{isActive ? 'Đang học' : 'Nghỉ học'}</StatusChip>
+                            <StatusChip variant={isActive ? 'present' : 'neutral'}>{isActive ? 'Active' : 'Inactive'}</StatusChip>
                         </div>
                         <p className="font-data text-xs text-text-tertiary">MSSV: {student.id}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <DetailField icon={HiOutlineAcademicCap} label="Lớp sinh hoạt" value={student.grade || '—'} mono />
+                    <DetailField icon={HiOutlineAcademicCap} label="Class" value={student.grade || '—'} mono />
                     <DetailField icon={HiOutlineMail} label="Email" value={student.email || '—'} />
-                    <DetailField icon={HiOutlinePhone} label="Số điện thoại" value={student.phone || '—'} mono />
+                    <DetailField icon={HiOutlinePhone} label="Phone number" value={student.phone || '—'} mono />
                 </div>
 
                 <div className="space-y-2">
                     <h4 className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
                         <HiOutlineBookOpen className="h-4 w-4" />
-                        Môn học đã đăng ký
+                        Enrolled subjects
                     </h4>
                     <div className="rounded-card border border-border bg-surface-sunken p-3">
                         {student.subjects && student.subjects !== '—' ? (
@@ -49,7 +49,7 @@ export default function StudentDetailModal({ isOpen, onClose, student }) {
                                 ))}
                             </div>
                         ) : (
-                            <span className="text-xs italic text-text-tertiary">Chưa đăng ký môn học nào</span>
+                            <span className="text-xs text-text-tertiary">No enrolled subjects</span>
                         )}
                     </div>
                 </div>
