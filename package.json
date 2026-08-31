@@ -4,6 +4,8 @@
   "private": true,
   "description": "Intelligent biometric attendance platform for connected learning environments",
   "scripts": {
+    "start": "./start.sh",
+    "stop": "./stop.sh",
     "dev:web": "npm --prefix frontend run dev",
     "dev:api": "npm --prefix backend run dev",
     "build:web": "npm --prefix frontend run build",

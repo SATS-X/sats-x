@@ -56,6 +56,23 @@ flowchart LR
 
 ## Quick start
 
+### Start the local platform
+
+The root launcher prepares PostgreSQL, applies Prisma migrations, and starts the frontend, backend, and liveness service. Missing local environment files and dependencies are bootstrapped automatically.
+
+```bash
+./start.sh
+```
+
+Open the console at `http://localhost:3000`. Runtime logs are written to `.sats-x/logs/`.
+
+```bash
+./stop.sh                  # Stop applications and PostgreSQL
+./stop.sh --keep-database  # Stop applications but keep PostgreSQL running
+```
+
+Set `SATS_X_SKIP_LIVENESS=1` when only the web platform is needed, or `SATS_X_PYTHON=python3.12` to select a specific Python interpreter for the vision environment.
+
 ### Frontend
 
 ```bash

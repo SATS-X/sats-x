@@ -11,6 +11,7 @@
 **/skills-lock.json
 
 # Dependencies and build output
+.sats-x/
 **/node_modules/
 **/dist/
 **/build/
