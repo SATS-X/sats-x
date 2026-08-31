@@ -71,7 +71,7 @@ Open the console at `http://localhost:3000`. Runtime logs are written to `.sats-
 ./stop.sh --keep-database  # Stop applications but keep PostgreSQL running
 ```
 
-Set `SATS_X_SKIP_LIVENESS=1` when only the web platform is needed, or `SATS_X_PYTHON=python3.12` to select a specific Python interpreter for the vision environment.
+The liveness model requires Python 3.10-3.12 because TensorFlow does not provide Python 3.14 wheels. On macOS, install a compatible runtime with `brew install python@3.12`. The launcher selects it automatically. Set `SATS_X_SKIP_LIVENESS=1` when only the web platform is needed, or `SATS_X_PYTHON=/path/to/python3.12` to select a specific interpreter.
 
 ### Frontend
 

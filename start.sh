@@ -133,12 +133,55 @@ install_dependencies() {
         return 0
     fi
 
-    local python_command="${SATS_X_PYTHON:-python3}"
-    require_command "$python_command"
+    local python_command=""
+    local candidate
+    local desired_version
+    local current_version=""
 
-    if [[ ! -x "$ROOT_DIR/liveness/.venv/bin/python" ]]; then
-        info "Creating the liveness Python environment with $python_command..."
-        "$python_command" -m venv "$ROOT_DIR/liveness/.venv"
+    if [[ -n "${SATS_X_PYTHON:-}" ]]; then
+        candidate="$SATS_X_PYTHON"
+        command -v "$candidate" >/dev/null 2>&1 || \
+            fail "SATS_X_PYTHON does not point to an executable Python interpreter: $candidate"
+        if ! "$candidate" -c 'import sys; raise SystemExit(0 if (3, 10) <= sys.version_info[:2] <= (3, 12) else 1)'; then
+            fail "TensorFlow requires Python 3.10-3.12; SATS_X_PYTHON is $($candidate --version 2>&1)."
+        fi
+        python_command="$candidate"
+    else
+        for candidate in \
+            /opt/homebrew/bin/python3.12 \
+            /usr/local/bin/python3.12 \
+            python3.12 python3.11 python3.10; do
+            if command -v "$candidate" >/dev/null 2>&1 && \
+                "$candidate" -c 'import sys; raise SystemExit(0 if (3, 10) <= sys.version_info[:2] <= (3, 12) else 1)' \
+                    >/dev/null 2>&1; then
+                python_command="$candidate"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "$python_command" ]]; then
+        fail "TensorFlow does not support the installed Python 3.14 runtime. Install Python 3.12 with 'brew install python@3.12', then run ./start.sh again."
+    fi
+
+    desired_version="$("$python_command" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+    if [[ -x "$ROOT_DIR/liveness/.venv/bin/python" ]]; then
+        current_version="$("$ROOT_DIR/liveness/.venv/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+    fi
+
+    if [[ ! -x "$ROOT_DIR/liveness/.venv/bin/python" || "$current_version" != "$desired_version" ]]; then
+        if [[ -d "$ROOT_DIR/liveness/.venv" ]]; then
+            info "Rebuilding the liveness environment (Python ${current_version:-unknown} -> $desired_version)..."
+            "$python_command" -m venv --clear "$ROOT_DIR/liveness/.venv"
+        else
+            info "Creating the liveness Python $desired_version environment..."
+            "$python_command" -m venv "$ROOT_DIR/liveness/.venv"
+        fi
+    fi
+
+    current_version="$("$ROOT_DIR/liveness/.venv/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+    if [[ "$current_version" != "$desired_version" ]]; then
+        fail "The liveness environment was created with Python ${current_version:-unknown}, expected $desired_version. Remove liveness/.venv and try again."
     fi
 
     if ! "$ROOT_DIR/liveness/.venv/bin/python" -c \
@@ -156,7 +199,26 @@ start_database() {
     fi
 
     require_command docker
-    docker info >/dev/null 2>&1 || fail "Docker is installed but the Docker daemon is not running."
+    if ! docker info >/dev/null 2>&1; then
+        if [[ "$(uname -s)" == "Darwin" ]] && command -v open >/dev/null 2>&1 && \
+            open -Ra Docker >/dev/null 2>&1; then
+            info "Docker Desktop is not running. Starting it now..."
+            open -a Docker
+
+            local docker_attempt=1
+            while (( docker_attempt <= 90 )); do
+                if docker info >/dev/null 2>&1; then
+                    success "Docker Desktop is ready."
+                    break
+                fi
+                sleep 1
+                ((docker_attempt += 1))
+            done
+        fi
+    fi
+
+    docker info >/dev/null 2>&1 || \
+        fail "Docker is installed but its daemon is unavailable. Start Docker Desktop and try again."
 
     info "Starting PostgreSQL..."
     docker compose -f "$ROOT_DIR/backend/docker-compose.yml" up -d postgres
