@@ -1,9 +1,5 @@
 <div align="center">
-  <img src="frontend/public/sats-x.svg" alt="SATS X" width="88" />
-
-  # SATS X
-
-  **Intelligent attendance infrastructure for connected learning environments.**
+  <img src="brand/sats-x-org-cover.png" alt="SATS X — intelligence at the edge" width="100%" />
 
   Edge capture, verified biometric identity, real-time operations, and clear attendance records in one system.
 </div>
