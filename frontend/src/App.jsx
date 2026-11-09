@@ -21,6 +21,8 @@ import Settings from './pages/Settings'
 import FaceManagement from './pages/FaceManagement'
 import Attendance from './pages/Attendance'
 import Schedule from './pages/Schedule'
+import Live from './pages/Live'
+import Devices from './pages/Devices'
 
 // Route Guard
 function RequireAuth({ children }) {
@@ -71,6 +73,28 @@ export default function App() {
                             >
                                 <Route index element={<Dashboard />} />
                                 <Route path="profile" element={<Profile />} />
+                            </Route>
+
+                            <Route
+                                path="/live"
+                                element={
+                                    <RequireAuth>
+                                        <Layout />
+                                    </RequireAuth>
+                                }
+                            >
+                                <Route index element={<Live />} />
+                            </Route>
+
+                            <Route
+                                path="/devices"
+                                element={
+                                    <RequireAuth>
+                                        <Layout />
+                                    </RequireAuth>
+                                }
+                            >
+                                <Route index element={<Devices />} />
                             </Route>
 
                             <Route

@@ -1,19 +1,18 @@
-"""Trigger Lambda: cho phép frontend ra lệnh chụp ảnh từ xa qua MQTT.
+"""Device command Lambda: remote capture and firmware updates over MQTT.
 
-Tái dùng nguyên cơ chế cảm biến khoảng cách đã có sẵn trên firmware — ESP32-CAM
-đã subscribe topic "esp32/attendance-system" và tự gọi attendanceSystemCompare()
-khi thấy {"event_type": "compare"} (xem lib/mqtt/mqtt.cpp: handleMessage(),
-lib/buzzer/buzzer.cpp: buzzerUpdate() publish cùng payload này khi có người
-đứng gần). Publish đúng payload đó qua AWS IoT Core — KHÔNG cần đổi/nạp lại
-firmware, vì code xử lý phía thiết bị đã tồn tại và đang chạy.
+Lệnh chụp dùng lại đúng payload {"event_type": "compare"} mà cảm biến khoảng cách
+đã publish, nên không cần firmware riêng cho việc này (xem lib/mqtt/mqtt.cpp).
+device_id là tuỳ chọn: có thì chỉ đúng thiết bị đó thực hiện lệnh.
 """
 
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone, timedelta
 
 import boto3
+from botocore.client import Config
 
 logger = logging.getLogger()
 logger.setLevel(os.environ.get("LOG_LEVEL", "INFO"))
@@ -22,8 +21,16 @@ VN_TZ = timezone(timedelta(hours=7))
 
 IOT_ENDPOINT = os.environ.get("IOT_ENDPOINT", "")
 CAPTURE_TOPIC = os.environ.get("CAPTURE_TOPIC", "esp32/attendance-system")
+BUCKET_NAME = os.environ.get("BUCKET_NAME", "")
+
+FIRMWARE_PREFIX = "firmware/"
+FIRMWARE_URL_TTL_SECONDS = 900
+VERSION = re.compile(r"^[A-Za-z0-9._-]{1,32}$")
+DEVICE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+STAFF_ROLES = ("teacher", "admin")
 
 iot_data = boto3.client("iot-data", endpoint_url=f"https://{IOT_ENDPOINT}") if IOT_ENDPOINT else None
+s3 = boto3.client("s3", config=Config(signature_version="s3v4"))
 
 
 def _get_apigw_client(event):
@@ -45,32 +52,16 @@ def _send_to_client(event, payload):
         logger.warning("Connection %s is closed; the response could not be delivered", connection_id)
 
 
-def lambda_handler(event, context):
-    authorizer = event.get("requestContext", {}).get("authorizer") or {}
-    if authorizer.get("role") not in ("teacher", "admin"):
-        _send_to_client(event, {
-            "status": "error",
-            "action": "triggerCapture",
-            "message": "Forbidden",
-        })
-        return {"statusCode": 403}
+def _publish(payload):
+    iot_data.publish(topic=CAPTURE_TOPIC, qos=1, payload=json.dumps(payload))
 
-    if not iot_data:
-        _send_to_client(event, {
-            "status": "error",
-            "action": "triggerCapture",
-            "message": "IOT_ENDPOINT is not configured for this Lambda",
-        })
-        return {"statusCode": 500}
 
-    try:
-        body = json.loads(event.get("body") or "{}")
-    except json.JSONDecodeError:
-        body = {}
+def _trigger_capture(event, body):
+    device_id = body.get("device_id")
+    if device_id is not None and not (isinstance(device_id, str) and DEVICE_ID.match(device_id)):
+        return "error", "Invalid device_id", {}
 
-    topic = body.get("topic", CAPTURE_TOPIC)
     now = datetime.now(VN_TZ)
-
     payload = {
         "event_type": "compare",
         "day": now.day,
@@ -82,22 +73,102 @@ def lambda_handler(event, context):
         "distance": 0,
         "triggered_by": "dashboard",
     }
+    if device_id:
+        payload["device_id"] = device_id
+
+    _publish(payload)
+    logger.info("Published capture command to %s", device_id or "all devices")
+    return "success", "Capture command sent to device", {}
+
+
+def _list_firmware(event, body):
+    page = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=FIRMWARE_PREFIX)
+    releases = [
+        {
+            "version": item["Key"][len(FIRMWARE_PREFIX):-len(".bin")],
+            "size": item["Size"],
+            "uploaded_at": item["LastModified"].isoformat(),
+        }
+        for item in page.get("Contents", [])
+        if item["Key"].endswith(".bin")
+    ]
+    releases.sort(key=lambda release: release["uploaded_at"], reverse=True)
+    return "success", "", {"releases": releases}
+
+
+def _update_firmware(event, body):
+    role = (event.get("requestContext", {}).get("authorizer") or {}).get("role")
+    if role != "admin":
+        return "error", "Only administrators can update firmware", {}
+
+    device_id = body.get("device_id")
+    version = body.get("version")
+    if not (isinstance(device_id, str) and DEVICE_ID.match(device_id)):
+        return "error", "Invalid device_id", {}
+    if not (isinstance(version, str) and VERSION.match(version)):
+        return "error", "Invalid firmware version", {}
+
+    key = f"{FIRMWARE_PREFIX}{version}.bin"
+    try:
+        head = s3.head_object(Bucket=BUCKET_NAME, Key=key)
+    except s3.exceptions.ClientError:
+        return "error", f"Firmware {version} was not found", {}
+
+    md5 = head["ETag"].strip('"')
+    if "-" in md5:
+        return "error", "This firmware was uploaded in parts and has no usable checksum. Upload it again as one file", {}
+
+    url = s3.generate_presigned_url(
+        ClientMethod="get_object",
+        Params={"Bucket": BUCKET_NAME, "Key": key},
+        ExpiresIn=FIRMWARE_URL_TTL_SECONDS,
+    )
+
+    _publish({"event_type": "ota", "device_id": device_id, "version": version, "md5": md5, "url": url})
+    logger.info("Sent firmware %s to %s", version, device_id)
+    return "success", f"Firmware {version} sent to {device_id}", {"device_id": device_id, "version": version}
+
+
+HANDLERS = {
+    "triggerCapture": _trigger_capture,
+    "listFirmware": _list_firmware,
+    "updateFirmware": _update_firmware,
+}
+
+
+def lambda_handler(event, context):
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        body = {}
+
+    action = event.get("requestContext", {}).get("routeKey")
+    if action not in HANDLERS:
+        action = body.get("action", "triggerCapture")
+    handler = HANDLERS.get(action)
+
+    def respond(status, message, extra):
+        _send_to_client(event, {"status": status, "action": action, "message": message, **extra})
+
+    authorizer = event.get("requestContext", {}).get("authorizer") or {}
+    if authorizer.get("role") not in STAFF_ROLES:
+        respond("error", "Forbidden", {})
+        return {"statusCode": 403}
+
+    if not handler:
+        respond("error", "Unknown action", {})
+        return {"statusCode": 400}
+
+    if action != "listFirmware" and not iot_data:
+        respond("error", "IOT_ENDPOINT is not configured for this Lambda", {})
+        return {"statusCode": 500}
 
     try:
-        iot_data.publish(topic=topic, qos=1, payload=json.dumps(payload))
-        logger.info("Published capture command to topic %s", topic)
-        _send_to_client(event, {
-            "status": "success",
-            "action": "triggerCapture",
-            "message": f"Capture command sent to device (topic: {topic})",
-            "topic": topic,
-        })
-        return {"statusCode": 200}
-    except Exception as e:
-        logger.exception("Failed to publish capture command")
-        _send_to_client(event, {
-            "status": "error",
-            "action": "triggerCapture",
-            "message": f"Failed to send command to device: {e}",
-        })
+        status, message, extra = handler(event, body)
+    except Exception:
+        logger.exception("Device command failed: %s", action)
+        respond("error", "The device command could not be sent", {})
         return {"statusCode": 500}
+
+    respond(status, message, extra)
+    return {"statusCode": 200 if status == "success" else 400}

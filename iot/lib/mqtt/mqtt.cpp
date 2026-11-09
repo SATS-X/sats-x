@@ -1,5 +1,11 @@
 #include "mqtt.h"
 #include "attendance_system.h"
+#include "ota.h"
+#include "websocket.h"
+
+// Lệnh cập nhật mang URL ký dài hơn nhiều so với giới hạn mặc định 256 byte.
+static const uint16_t MQTT_BUFFER_BYTES = 2560;
+static const unsigned long MQTT_RETRY_MS = 5000;
 
 WiFiClientSecure net;
 PubSubClient AWSIoTClient(net);
@@ -84,12 +90,20 @@ void handleMessage(char* topic, byte* payload, unsigned int length) {
     Serial.println(message);
 
     // Parse JSON message
-    StaticJsonDocument<512> doc;
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, message);
 
     if (error) {
         Serial.print("JSON parsing failed: ");
         Serial.println(error.c_str());
+        Serial.println("=== End MQTT Message ===\n");
+        return;
+    }
+
+    // Lệnh có device_id chỉ dành cho đúng thiết bị đó.
+    const char* targetDevice = doc["device_id"];
+    if (targetDevice && deviceId != targetDevice) {
+        Serial.println("Command is for another device");
         Serial.println("=== End MQTT Message ===\n");
         return;
     }
@@ -101,6 +115,9 @@ void handleMessage(char* topic, byte* payload, unsigned int length) {
         if (strcmp(eventType, "compare") == 0) {
             Serial.println("Received COMPARE command from ESP32 - Starting face comparison...");
             attendanceSystemCompare();
+
+        } else if (strcmp(eventType, "ota") == 0) {
+            otaRequest(doc["url"], doc["md5"], doc["version"]);
 
         } else {
             Serial.print("Unknown event type: ");
@@ -122,6 +139,7 @@ bool connectToAWSIoTCore_ESP32() {
 
     AWSIoTClient.setServer(AWS_IOT_ENDPOINT_ESP32, 8883);
     AWSIoTClient.setCallback(handleMessage);
+    AWSIoTClient.setBufferSize(MQTT_BUFFER_BYTES);
 
     Serial.println("Connecting ESP32 to AWS IOT...");
     Serial.print("Endpoint: ");
@@ -157,6 +175,7 @@ bool connectToAWSIoTCore_ESP32CAM() {
 
     AWSIoTClient.setServer(AWS_IOT_ENDPOINT_ESP32, 8883);
     AWSIoTClient.setCallback(handleMessage);
+    AWSIoTClient.setBufferSize(MQTT_BUFFER_BYTES);
 
     Serial.println("Connecting ESP32-CAM to AWS IOT...");
     Serial.print("Endpoint: ");
@@ -198,21 +217,20 @@ void reconnect_ESP32() {
     }
 }
 
+// Thử một lần rồi trả quyền cho vòng lặp chính: chờ tại đây sẽ làm đứng cả camera
+// và WebSocket mỗi khi MQTT mất kết nối.
 void reconnect_ESP32CAM() {
-    while (!AWSIoTClient.connected()) {
-        Serial.print("Attempting ESP32-CAM MQTT connection...");
-        if (AWSIoTClient.connect(THINGNAME_ESP32_CAM)) {
-            Serial.println("ESP32-CAM AWS IoT Connected!");
+    static unsigned long lastAttempt = 0;
+    if (lastAttempt != 0 && millis() - lastAttempt < MQTT_RETRY_MS) return;
+    lastAttempt = millis();
 
-            // Auto-resubscribe to topics after successful reconnection
-            resubscribeTopicsESP32CAM();
-
-        } else {
-            Serial.print("failed, rc=");
-            Serial.print(AWSIoTClient.state());
-            Serial.println(" try again in 5 seconds");
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
-        }
+    Serial.print("Attempting ESP32-CAM MQTT connection...");
+    if (AWSIoTClient.connect(THINGNAME_ESP32_CAM)) {
+        Serial.println("ESP32-CAM AWS IoT Connected!");
+        resubscribeTopicsESP32CAM();
+    } else {
+        Serial.print("failed, rc=");
+        Serial.println(AWSIoTClient.state());
     }
 }
 
@@ -231,6 +249,10 @@ bool isClientConnected() {
     return AWSIoTClient.connected();
 }
 
+void mqttDisconnect() {
+    AWSIoTClient.disconnect();
+}
+
 void clientLoop_ESP32() {
     if (!AWSIoTClient.connected()) {
         Serial.println("ESP32 MQTT client disconnected, attempting reconnection...");
@@ -241,8 +263,8 @@ void clientLoop_ESP32() {
 
 void clientLoop_ESP32CAM() {
     if (!AWSIoTClient.connected()) {
-        Serial.println("ESP32-CAM MQTT client disconnected, attempting reconnection...");
         reconnect_ESP32CAM();
+        return;
     }
     AWSIoTClient.loop();
 }

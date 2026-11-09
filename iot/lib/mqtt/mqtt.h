@@ -16,5 +16,6 @@ void clientLoop_ESP32();
 void clientLoop_ESP32CAM();
 void publishMessage(const char* topic, const char* message);
 bool isClientConnected();
+void mqttDisconnect();
 void setTopicsForESP32CAM(const char* topics[], int topicCount);
 void resubscribeTopicsESP32CAM();

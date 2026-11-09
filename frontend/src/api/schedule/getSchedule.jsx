@@ -6,6 +6,16 @@ export const getSchedule = async (params = {}) => {
     return res.data
 }
 
+export const getLiveSessions = async () => {
+    const res = await client.get('/api/schedule/live')
+    return res.data
+}
+
+export const getSessionRoster = async (id) => {
+    const res = await client.get(`/api/schedule/${id}/roster`)
+    return res.data
+}
+
 export const createSchedule = async (payload) => {
     const res = await client.post('/api/schedule', payload)
     return res.data

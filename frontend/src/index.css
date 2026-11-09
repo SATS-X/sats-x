@@ -30,7 +30,7 @@
 
         --grid-line: rgb(31 35 44 / 0.055);
         --surface-header: rgb(255 255 255 / 0.84);
-        --shadow-panel: 0 14px 44px rgb(31 35 44 / 0.06);
+        --shadow-panel: 0 1px 2px rgb(31 35 44 / 0.04), 0 14px 44px rgb(31 35 44 / 0.06);
         --shadow-elevated: 0 20px 60px rgb(31 35 44 / 0.14);
     }
 
@@ -59,7 +59,7 @@
 
         --grid-line: rgb(255 255 255 / 0.035);
         --surface-header: rgb(28 28 34 / 0.86);
-        --shadow-panel: 0 16px 50px rgb(0 0 0 / 0.24);
+        --shadow-panel: inset 0 1px rgb(255 255 255 / 0.04), 0 16px 50px rgb(0 0 0 / 0.24);
         --shadow-elevated: 0 24px 70px rgb(0 0 0 / 0.42);
     }
 
@@ -126,6 +126,21 @@
 @layer utilities {
     .brand-gradient {
         background-image: linear-gradient(120deg, rgb(var(--color-accent)), rgb(var(--color-brand-end)));
+    }
+
+    /* Nền của các khối chính: lưới mảnh và một vệt teal, cùng họ với trang chủ. */
+    .canvas-band {
+        background-color: rgb(var(--color-surface));
+        background-image:
+            radial-gradient(circle at 88% -30%, rgb(var(--color-accent) / 0.16), transparent 46%),
+            radial-gradient(circle at 4% 130%, rgb(var(--color-brand-end) / 0.09), transparent 42%),
+            linear-gradient(var(--grid-line) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 100%, 26px 26px, 26px 26px;
+    }
+
+    .app-ambient {
+        background-image: radial-gradient(ellipse 70rem 22rem at 70% -8rem, rgb(var(--color-accent) / 0.07), transparent 70%);
     }
 }
 

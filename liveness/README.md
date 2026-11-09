@@ -127,7 +127,7 @@ The model was comprehensively evaluated on a 2,000-sample test benchmark contain
 | **Total Test Support** | 1,000 samples | 1,000 samples | 2,000 samples | 2,000 samples |
 
 ### Operational Performance Metrics
-- **Overall Classification Accuracy**: **`86.0%`**
+- **Overall Classification Accuracy**: **`86.0%`** on the 2,000-image set above, but only **`56.0%`** on a separate 200-image set (`evaluation_results/accuracy_results.json`). Treat these as unproven on real ESP32-CAM images: production defaults to `liveness_mode = "monitor"`, which flags suspected spoofs without rejecting anyone.
 - **Average Inference Latency**: **`96.7 ms`** per frame (CPU mode) / **`<25 ms`** (GPU CUDA mode)
 - **Input Tensor Dimensions**: `(96, 96, 3)` / `(224, 224, 3)` (dynamically detected)
 

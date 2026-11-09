@@ -42,10 +42,25 @@ export default {
                 'fade-in': {
                     '0%': { transform: 'translateY(4px)' },
                     '100%': { transform: 'translateY(0)' }
+                },
+                stamp: {
+                    '0%': { transform: 'scale(1.5) rotate(-11deg)' },
+                    '100%': { transform: 'scale(1) rotate(-3deg)' }
+                },
+                'row-arrive': {
+                    '0%': { backgroundColor: 'rgb(var(--color-accent) / 0.22)' },
+                    '100%': { backgroundColor: 'transparent' }
+                },
+                lamp: {
+                    '0%': { boxShadow: '0 0 0 0 rgb(var(--color-present) / 0.45)' },
+                    '100%': { boxShadow: '0 0 0 7px rgb(var(--color-present) / 0)' }
                 }
             },
             animation: {
-                'fade-in': 'fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+                'fade-in': 'fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                stamp: 'stamp 0.28s cubic-bezier(0.2, 0.9, 0.25, 1)',
+                'row-arrive': 'row-arrive 2.4s ease-out',
+                lamp: 'lamp 2s ease-out infinite'
             }
         }
     },

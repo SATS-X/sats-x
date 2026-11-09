@@ -8,8 +8,10 @@ import {
     formatDate,
     isValidTime,
     parseDate,
+    toVietnamParts,
     weekdayOf
 } from '../helpers/dates.js';
+import { rosterWhere } from '../services/sessionCloser.js';
 
 const fail = (res, status, error, message, extra = {}) =>
     res.status(status).json({ success: false, error, message, ...extra });
@@ -154,6 +156,91 @@ export const getAllSchedules = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getAllSchedules:', error);
+        return fail(res, 500, 'Internal server error', error.message);
+    }
+};
+
+const STATUS_BY_REMARK = { 'On Time': 'present', Late: 'late', Absent: 'absent' };
+
+/** GET /api/schedule/live — các buổi hôm nay (giờ VN) kèm số đã đến trên sĩ số. */
+export const getLiveSessions = async (req, res) => {
+    try {
+        const { day, month, year, time } = toVietnamParts(new Date());
+
+        const sessions = await prisma.schedule.findMany({
+            where: { day, month, year, status: { not: 'cancelled' } },
+            include: { ...WITH_RELATIONS, attendances: { select: { remark: true } } },
+            orderBy: { startTime: 'asc' }
+        });
+
+        const subjectIds = [...new Set(sessions.map((s) => s.subjectId))];
+        const rosterSizes = new Map(
+            await Promise.all(subjectIds.map(async (id) => [id, await prisma.student.count({ where: rosterWhere(id) })]))
+        );
+
+        const data = sessions.map((session) => {
+            const counts = { 'On Time': 0, Late: 0, Absent: 0 };
+            session.attendances.forEach((a) => {
+                if (a.remark in counts) counts[a.remark] += 1;
+            });
+
+            return {
+                ...toScheduleRow(session),
+                is_active: session.status === 'scheduled' && session.startTime <= time && time <= session.endTime,
+                expected: rosterSizes.get(session.subjectId) ?? 0,
+                on_time: counts['On Time'],
+                late: counts.Late,
+                absent: counts.Absent
+            };
+        });
+
+        return res.status(200).json({ success: true, data, count: data.length, now: time });
+    } catch (error) {
+        console.error('Error in getLiveSessions:', error);
+        return fail(res, 500, 'Internal server error', error.message);
+    }
+};
+
+/** GET /api/schedule/:id/roster — danh sách điểm danh của một buổi. */
+export const getSessionRoster = async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        const session = Number.isInteger(id) ? await prisma.schedule.findUnique({ where: { id }, include: WITH_RELATIONS }) : null;
+
+        if (!session) return fail(res, 404, 'NotFound', 'Session not found');
+
+        const [roster, records] = await Promise.all([
+            prisma.student.findMany({ where: rosterWhere(session.subjectId), select: { studentId: true, fullName: true } }),
+            prisma.attendance.findMany({ where: { scheduleId: id }, include: { student: { select: { fullName: true } } } })
+        ]);
+
+        const recordByStudent = new Map(records.map((record) => [record.studentId, record]));
+
+        // Sinh viên đã có bản ghi nhưng không còn trong danh sách lớp vẫn phải hiện.
+        const students = [
+            ...roster.map((s) => ({ id: s.studentId, name: s.fullName })),
+            ...records.filter((r) => !roster.some((s) => s.studentId === r.studentId)).map((r) => ({ id: r.studentId, name: r.student.fullName }))
+        ];
+
+        const data = students
+            .map(({ id: studentId, name }) => {
+                const record = recordByStudent.get(studentId);
+                return {
+                    student_id: studentId,
+                    full_name: name,
+                    state: record ? (STATUS_BY_REMARK[record.remark] ?? 'present') : 'pending',
+                    time: record?.status === 1 ? record.time : null,
+                    image_key: record?.imageKey ?? null,
+                    liveness_verdict: record?.livenessVerdict ?? null,
+                    liveness_score: record?.livenessScore ?? null,
+                    device_id: record?.deviceId ?? null
+                };
+            })
+            .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+        return res.status(200).json({ success: true, session: toScheduleRow(session), data, count: data.length });
+    } catch (error) {
+        console.error('Error in getSessionRoster:', error);
         return fail(res, 500, 'Internal server error', error.message);
     }
 };

@@ -29,6 +29,7 @@ export const WebSocketProvider = ({ children }) => {
     const [connectionStatus, setConnectionStatus] = useState('disconnected') // disconnected, connecting, connected, error
     const [lastMessage, setLastMessage] = useState(null)
     const [messageHistory, setMessageHistory] = useState([])
+    const [liveEvents, setLiveEvents] = useState([])
     const [latency, setLatency] = useState(null)
     const [reconnectAttempt, setReconnectAttempt] = useState(0)
 
@@ -47,7 +48,7 @@ export const WebSocketProvider = ({ children }) => {
     // Tăng mỗi lần connect/disconnect, để lần lấy vé đang chờ biết mình đã lỗi thời.
     const connectAttemptRef = useRef(0)
 
-    const { showError, showSuccess, showInfo } = useToast()
+    const { showError, showSuccess } = useToast()
     const { isAuthenticated } = useAuth()
 
     const cleanup = useCallback(() => {
@@ -139,17 +140,11 @@ export const WebSocketProvider = ({ children }) => {
 
                 const action = data.action || (data.status ? 'response' : 'unknown')
 
-                // Notify user on specific attendance & face events
-                if (data.action === 'compare' && data.status === 'success') {
-                    if (data.matched) {
-                        showSuccess(
-                            `Student recognized: ${data.studentId} (${data.similarity}%)`,
-                            'Automatic attendance'
-                        )
-                    } else {
-                        showInfo('Face does not match this class roster', 'Attendance')
-                    }
-                } else if (data.action === 'deleteFace' && data.status === 'success') {
+                if (data.action === 'attendanceEvent') {
+                    setLiveEvents((prev) => [{ id: `${Date.now()}-${Math.random()}`, ...data }, ...prev.slice(0, 49)])
+                }
+
+                if (data.action === 'deleteFace' && data.status === 'success') {
                     showSuccess('Face removed from collection', 'Rekognition')
                 } else if (
                     data.status === 'error' &&
@@ -211,7 +206,7 @@ export const WebSocketProvider = ({ children }) => {
             setConnectionStatus('error')
             showError('Could not establish an AWS WebSocket connection', 'Error')
         }
-    }, [showError, showSuccess, showInfo, cleanup, scheduleReconnect])
+    }, [showError, showSuccess, cleanup, scheduleReconnect])
 
     connectRef.current = connect
 
@@ -223,6 +218,7 @@ export const WebSocketProvider = ({ children }) => {
             wsRef.current = null
             ws.close(1000, 'Client disconnect')
         }
+        setLiveEvents([])
         setIsConnected(false)
         setConnectionStatus('disconnected')
     }, [cleanup])
@@ -345,6 +341,7 @@ export const WebSocketProvider = ({ children }) => {
         connectionStatus,
         lastMessage,
         messageHistory,
+        liveEvents,
         latency,
         wsUrl: WS_URL,
         connect,

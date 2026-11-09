@@ -5,6 +5,7 @@
 #include "websocket.h"
 #include "mqtt.h"
 #include "attendance_system.h"
+#include "ota.h"
 
 #ifndef WS_DEVICE_TOKEN
 #error "Define WS_DEVICE_TOKEN in lib/secrets/secrets_esp32-cam.h (must match ws_device_token in Terraform)"
@@ -48,7 +49,15 @@ void attendanceSystemInit() {
     // Note: Schedule will be automatically requested when WebSocket connects
 }
 
+// Giải phóng hai kết nối TLS đang mở để đủ RAM cho lượt tải firmware.
+static void prepareForOta(const String& version) {
+    displayUserInfo("Updating", version, "SCANNING");
+    wsClient.close();
+    mqttDisconnect();
+}
+
 void attendanceSystemUpdate() {
+    otaLoop(prepareForOta);
     streamCamera();
     websocketPoll();
 

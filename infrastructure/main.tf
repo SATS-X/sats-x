@@ -42,6 +42,27 @@ locals {
   }
 }
 
+# Kết nối WebSocket đang mở, để đẩy sự kiện điểm danh trực tiếp tới console.
+resource "aws_dynamodb_table" "connections" {
+  name         = "${local.name_prefix}-ws-connections"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "connectionId"
+
+  attribute {
+    name = "connectionId"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+}
+
 module "lambda_ws_authorizer" {
   source = "./modules/lambda-function"
 
@@ -71,7 +92,17 @@ module "lambda_connection" {
   memory_size        = 128
   log_retention_days = var.lambda_log_retention_days
 
-  environment_variables = local.common_env
+  environment_variables = merge(local.common_env, {
+    CONNECTIONS_TABLE = aws_dynamodb_table.connections.name
+  })
+
+  policy_statements = [
+    {
+      sid       = "TrackConnections"
+      actions   = ["dynamodb:PutItem", "dynamodb:DeleteItem"]
+      resources = [aws_dynamodb_table.connections.arn]
+    },
+  ]
 }
 
 module "lambda_attendance" {
@@ -85,9 +116,18 @@ module "lambda_attendance" {
   memory_size        = 1024
   log_retention_days = var.lambda_log_retention_days
 
-  environment_variables = merge(local.common_env, local.backend_env)
+  environment_variables = merge(local.common_env, local.backend_env, {
+    CONNECTIONS_TABLE = aws_dynamodb_table.connections.name
+    LIVENESS_MODE     = var.liveness_mode
+    LIVENESS_URL      = "${module.ec2_backend.backend_url}/liveness/v1/check"
+  })
 
   policy_statements = [
+    {
+      sid       = "ReadConsoleConnections"
+      actions   = ["dynamodb:Scan", "dynamodb:DeleteItem"]
+      resources = [aws_dynamodb_table.connections.arn]
+    },
     {
       sid       = "WriteAttendanceImages"
       actions   = ["s3:PutObject"]
@@ -167,7 +207,7 @@ module "lambda_trigger" {
   source = "./modules/lambda-function"
 
   function_name      = "${local.name_prefix}-trigger"
-  description        = "Route triggerCapture - ra lenh chup anh tu xa qua MQTT, tai dung co che cam bien khoang cach da co san tren firmware"
+  description        = "Device commands over MQTT - remote capture and firmware updates"
   source_dir         = "${path.module}/lambda/trigger"
   runtime            = var.lambda_runtime
   timeout            = 10
@@ -184,6 +224,16 @@ module "lambda_trigger" {
       sid       = "PublishCaptureCommand"
       actions   = ["iot:Publish"]
       resources = ["arn:aws:iot:${local.region}:${local.account_id}:topic/esp32/attendance-system"]
+    },
+    {
+      sid       = "ReadFirmware"
+      actions   = ["s3:GetObject"]
+      resources = ["${module.storage.bucket_arn}/firmware/*"]
+    },
+    {
+      sid       = "ListFirmware"
+      actions   = ["s3:ListBucket"]
+      resources = [module.storage.bucket_arn]
     },
   ]
 }
@@ -260,6 +310,14 @@ module "websocket_api" {
       lambda_function_name = module.lambda_face_management.function_name
     }
     "triggerCapture" = {
+      lambda_invoke_arn    = module.lambda_trigger.invoke_arn
+      lambda_function_name = module.lambda_trigger.function_name
+    }
+    "listFirmware" = {
+      lambda_invoke_arn    = module.lambda_trigger.invoke_arn
+      lambda_function_name = module.lambda_trigger.function_name
+    }
+    "updateFirmware" = {
       lambda_invoke_arn    = module.lambda_trigger.invoke_arn
       lambda_function_name = module.lambda_trigger.function_name
     }

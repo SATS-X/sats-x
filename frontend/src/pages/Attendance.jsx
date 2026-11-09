@@ -315,7 +315,10 @@ export default function Attendance() {
                                         {record.day}/{record.month}/{record.year}
                                     </TD>
                                     <TD>
-                                        <StatusChip variant={REMARK_VARIANT[record.remark] || 'neutral'}>{REMARK_LABEL[record.remark] || record.remark}</StatusChip>
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <StatusChip variant={REMARK_VARIANT[record.remark] || 'neutral'}>{REMARK_LABEL[record.remark] || record.remark}</StatusChip>
+                                            {record.liveness_verdict === 'fake' && <StatusChip variant="late">Review</StatusChip>}
+                                        </span>
                                     </TD>
                                     <TD>
                                         <div className="flex justify-end">

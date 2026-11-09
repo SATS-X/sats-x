@@ -133,6 +133,17 @@ variable "ws_device_token" {
   }
 }
 
+variable "liveness_mode" {
+  description = "off skips the check, monitor records and flags suspected spoofs, enforce rejects them. Keep monitor until the model is validated on real camera images."
+  type        = string
+  default     = "monitor"
+
+  validation {
+    condition     = contains(["off", "monitor", "enforce"], var.liveness_mode)
+    error_message = "liveness_mode must be off, monitor, or enforce."
+  }
+}
+
 variable "api_stage_name" {
   description = "WebSocket API stage name. Appears in the URL: wss://.../<stage>."
   type        = string

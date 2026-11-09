@@ -4,12 +4,41 @@ import { toMinutes, toVietnamParts } from '../helpers/dates.js';
 const fail = (res, status, error, message) =>
     res.status(status).json({ success: false, error, message });
 
+const DEVICE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const LIVENESS_VERDICTS = ['real', 'fake', 'unavailable'];
+
+/** Ghi nhận thiết bị vừa hoạt động; camera mới sẽ tự được thêm vào danh sách. */
+const touchDevice = async (deviceId, firmware) => {
+    if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId)) return null;
+
+    const firmwareVersion = typeof firmware === 'string' && firmware ? firmware.slice(0, 32) : undefined;
+    const lastSeenAt = new Date();
+
+    return prisma.device.upsert({
+        where: { deviceId },
+        update: { lastSeenAt, firmwareVersion },
+        create: { deviceId, lastSeenAt, firmwareVersion }
+    });
+};
+
+const readLiveness = (value) => {
+    if (!value || !LIVENESS_VERDICTS.includes(value.verdict)) return {};
+    const score = Number(value.score);
+    return {
+        livenessVerdict: value.verdict,
+        livenessScore: Number.isFinite(score) && score >= 0 && score <= 1 ? score : null
+    };
+};
+
+const roomFilter = (device) => (device?.room ? { room: { equals: device.room, mode: 'insensitive' } } : {});
+
 /**
- * GET /api/device/schedule?day=&month=&year=
+ * GET /api/device/schedule?day=&month=&year=&device_id=&firmware=
  * Firmware ESP32-CAM gọi route "schedule" qua Lambda, luôn gửi kèm đúng bộ ba
- * ngày/tháng/năm hiện tại — không gửi teacher_id hay device_id nào cả, nên trả
- * về TOÀN BỘ lịch học trong ngày đó; thiết bị tự chọn tiết đang diễn ra bằng
- * giờ (xem findCurrentSchedule() trong websocket.cpp).
+ * ngày/tháng/năm hiện tại. Thiết bị đã được gán phòng chỉ nhận lịch của phòng đó;
+ * chưa gán thì nhận toàn bộ lịch trong ngày. Thiết bị tự chọn tiết đang diễn ra
+ * bằng giờ (xem findCurrentSchedule() trong websocket.cpp). Lần gọi này cũng là
+ * nhịp báo thiết bị còn hoạt động.
  *
  * Hình dạng response phải khớp CHÍNH XÁC với những gì firmware parse — không
  * bọc trong "data" như các route khác, vì đây là field top-level firmware đọc
@@ -22,8 +51,19 @@ export const getDeviceSchedule = async (req, res) => {
         const month = Number.parseInt(req.query.month, 10) || today.month;
         const year = Number.parseInt(req.query.year, 10) || today.year;
 
+        const device = await touchDevice(req.query.device_id, req.query.firmware);
+
+        if (device?.status === 'disabled') {
+            return res.status(200).json({
+                status: 'success',
+                message: 'This device is disabled',
+                schedule: [],
+                metadata: { total_classes: 0, day, month, year, timezone: 'Asia/Ho_Chi_Minh (GMT+7)' }
+            });
+        }
+
         const schedules = await prisma.schedule.findMany({
-            where: { day, month, year, status: { not: 'cancelled' } },
+            where: { day, month, year, status: { not: 'cancelled' }, ...roomFilter(device) },
             include: {
                 subject: {
                     include: {
@@ -90,10 +130,16 @@ export const getDeviceSchedule = async (req, res) => {
  */
 export const recordDeviceAttendance = async (req, res) => {
     try {
-        const { studentId, classId, imageKey, timestamp } = req.body || {};
+        const { studentId, classId, imageKey, timestamp, deviceId, liveness } = req.body || {};
 
         if (!studentId || !classId) {
             return fail(res, 400, 'ValidationError', 'Missing studentId or classId');
+        }
+
+        const device = await touchDevice(deviceId);
+
+        if (device?.status === 'disabled') {
+            return fail(res, 403, 'DeviceDisabled', 'This device is disabled');
         }
 
         const capturedAt = timestamp ? new Date(timestamp) : new Date();
@@ -117,7 +163,8 @@ export const recordDeviceAttendance = async (req, res) => {
                 month,
                 year,
                 status: 'scheduled',
-                subject: { classes: { some: { classId } } }
+                subject: { classes: { some: { classId } } },
+                ...roomFilter(device)
             },
             include: { subject: true }
         });
@@ -147,21 +194,29 @@ export const recordDeviceAttendance = async (req, res) => {
             subject: activeSchedule.subject?.name ?? subjectId,
             room: activeSchedule.room,
             start_time: activeSchedule.startTime,
-            end_time: activeSchedule.endTime
+            end_time: activeSchedule.endTime,
+            schedule_id: activeSchedule.id
         };
 
         // Một sinh viên chỉ điểm danh một lần cho một buổi học — nhận diện lại trả về
         // bản ghi đã có. Khoá unique chặn cả trường hợp hai request đến cùng lúc.
         const respondDuplicate = async () => {
             const existing = await prisma.attendance.findUnique({
-                where: { studentId_scheduleId: { studentId, scheduleId: activeSchedule.id } }
+                where: { studentId_scheduleId: { studentId, scheduleId: activeSchedule.id } },
+                include: { student: { select: { fullName: true } } }
             });
 
             return res.status(200).json({
                 success: true,
                 message: 'Student has already attended this session',
                 duplicate: true,
-                data: { student_id: existing.studentId, subject_id: existing.subjectId, remark: existing.remark, class_info: classInfo }
+                data: {
+                    student_id: existing.studentId,
+                    student_name: existing.student.fullName,
+                    subject_id: existing.subjectId,
+                    remark: existing.remark,
+                    class_info: classInfo
+                }
             });
         };
 
@@ -187,8 +242,11 @@ export const recordDeviceAttendance = async (req, res) => {
                     dayOfWeek: activeSchedule.dayOfWeek,
                     status: 1,
                     remark,
-                    imageKey: imageKey || null
-                }
+                    imageKey: imageKey || null,
+                    deviceId: device?.deviceId ?? null,
+                    ...readLiveness(liveness)
+                },
+                include: { student: { select: { fullName: true } } }
             });
         } catch (error) {
             if (error.code === 'P2002') {
@@ -202,6 +260,7 @@ export const recordDeviceAttendance = async (req, res) => {
             message: `Attendance recorded: ${remark}`,
             data: {
                 student_id: created.studentId,
+                student_name: created.student.fullName,
                 subject_id: created.subjectId,
                 remark: created.remark,
                 time: created.time,

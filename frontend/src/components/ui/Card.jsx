@@ -14,7 +14,7 @@ Card.propTypes = {
 }
 
 export const CardHeader = ({ title, description, action, className }) => (
-    <div className={classNames('flex items-center justify-between gap-4 border-b border-border px-5 py-4', className)}>
+    <div className={classNames('flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-border px-5 py-4', className)}>
         <div className="min-w-0">
             <h2 className="text-sm font-semibold text-text">{title}</h2>
             {description && <p className="mt-0.5 text-xs text-text-tertiary">{description}</p>}

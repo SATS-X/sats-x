@@ -62,10 +62,12 @@ export default function Header() {
                                     aria-current={active ? 'page' : undefined}
                                     className={classNames(
                                         'whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[13px] transition-colors',
+                                        'inline-flex items-center gap-1.5',
                                         active ? 'bg-surface-hover font-medium text-text' : 'text-text-secondary hover:text-text'
                                     )}
                                 >
-                                    {t(link.labelKey)}
+                                    {link.live && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-present" aria-hidden="true" />}
+                                    {link.label ?? t(link.labelKey)}
                                 </Link>
                             )
                         })}
@@ -142,7 +144,7 @@ export default function Header() {
             {isNavOpen && (
                 <nav className="animate-fade-in border-t border-border px-5 py-3 lg:hidden" aria-label="Mobile navigation">
                     <div className="grid gap-0.5 sm:grid-cols-2">
-                        {DASHBOARD_SIDEBAR_LINKS.map(({ key, labelKey, path, icon: Icon }) => {
+                        {DASHBOARD_SIDEBAR_LINKS.map(({ key, label, labelKey, path, icon: Icon }) => {
                             const active = isLinkActive(pathname, path)
                             return (
                                 <Link
@@ -155,7 +157,7 @@ export default function Header() {
                                     )}
                                 >
                                     <Icon className="h-4 w-4" aria-hidden="true" />
-                                    {t(labelKey)}
+                                    {label ?? t(labelKey)}
                                 </Link>
                             )
                         })}

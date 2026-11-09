@@ -1,0 +1,4 @@
+*
+!app/serving.py
+!models/liveness-detection-model.tflite
+!requirements-serving.txt

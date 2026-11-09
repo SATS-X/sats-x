@@ -3,15 +3,17 @@
 #include "aws_root_ca.h"
 
 WebsocketsClient wsClient;
-String deviceId = "ESP32CAM_01";
+String deviceId = "CAM-UNSET";
 
 // Reconnection variables
 String wsUrl = "";
 bool isReconnecting = false;
 unsigned long lastReconnectAttempt = 0;
-const unsigned long reconnectInterval = 5000; // 5 seconds
 int reconnectAttempts = 0;
-const int maxReconnectAttempts = 10;
+unsigned long lastPing = 0;
+const unsigned long pingInterval = 30000;
+const unsigned long minReconnectDelay = 5000;
+const unsigned long maxReconnectDelay = 60000;
 
 // Current class information
 String currentClassId = "";  // Stores the current class ID (e.g., "D22CQCI01-N")
@@ -87,6 +89,14 @@ JsonVariant findCurrentSchedule(JsonArray scheduleData) {
 }
 
 void websocketInit() {
+    // MAC là duy nhất, nên mỗi camera tự có một mã riêng mà không cần cấu hình.
+    uint8_t mac[6];
+    WiFi.macAddress(mac);
+    char id[16];
+    snprintf(id, sizeof(id), "CAM-%02X%02X%02X", mac[3], mac[4], mac[5]);
+    deviceId = id;
+    Serial.println("Device ID: " + deviceId);
+
     wsClient.onEvent([](WebsocketsEvent event, String data){
         if(event == WebsocketsEvent::ConnectionOpened) {
             Serial.println("WebSocket Connected!");
@@ -217,6 +227,8 @@ void websocketInit() {
                         String displayStatus = "PARTIAL";
                         if (attendanceReason == "ATTENDANCE_PERIOD_EXPIRED") {
                             displayStatus = "ABSENT";
+                        } else if (attendanceReason == "LIVENESS_FAILED") {
+                            displayStatus = "FAILED";
                         }
 
                         // Display user information with appropriate status
@@ -380,28 +392,28 @@ void websocketConnect(const char* ws_url) {
 }
 
 void reconnectWebsocket() {
-    if (wsClient.available() && wsClient.ping()) {
+    if (wsClient.available()) {
         isReconnecting = false;
         reconnectAttempts = 0;
+        if (millis() - lastPing >= pingInterval) {
+            lastPing = millis();
+            wsClient.ping();
+        }
         return;
     }
 
-    if (isReconnecting && (millis() - lastReconnectAttempt < reconnectInterval)) {
+    if (wsUrl.length() == 0 || WiFi.status() != WL_CONNECTED) {
+        return;
+    }
+
+    // Giãn dần tới tối đa 60 giây và không bao giờ bỏ cuộc: thiết bị đặt trong lớp
+    // không có ai khởi động lại nếu mạng trường mất lâu.
+    unsigned long retryDelay = min(minReconnectDelay << min(reconnectAttempts, 4), maxReconnectDelay);
+    if (isReconnecting && lastReconnectAttempt != 0 && millis() - lastReconnectAttempt < retryDelay) {
         return; // Too soon to retry
     }
 
-    if (reconnectAttempts >= maxReconnectAttempts) {
-        Serial.println("Max reconnection attempts reached. Stopping reconnection.");
-        isReconnecting = false;
-        return;
-    }
-
-    if (wsUrl.length() == 0) {
-        Serial.println("No WebSocket URL stored for reconnection");
-        return;
-    }
-
-    Serial.printf("WebSocket reconnection attempt %d/%d...\n", reconnectAttempts + 1, maxReconnectAttempts);
+    Serial.printf("WebSocket reconnection attempt %d...\n", reconnectAttempts + 1);
 
     wsClient.close();
     delay(100);
@@ -531,6 +543,8 @@ void websocketSendCompare(const String& image_base64) {
 void websocketSendSchedule() {
     DynamicJsonDocument doc(1024);
     doc["action"] = "schedule";
+    doc["deviceId"] = deviceId;
+    doc["firmware"] = FIRMWARE_VERSION;
 
     // Get current date from NTP server
     struct tm timeinfo;

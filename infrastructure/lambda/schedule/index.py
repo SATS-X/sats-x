@@ -9,6 +9,7 @@ tiếp nguyên trạng, không bọc thêm trong "data".
 import json
 import logging
 import os
+import urllib.parse
 import urllib.request
 import urllib.error
 
@@ -37,11 +38,17 @@ def _send_to_client(event, payload):
     )
 
 
-def _fetch_schedule(day, month, year):
+def _fetch_schedule(day, month, year, device_id=None, firmware=None):
     if not BACKEND_API_URL:
         return None, "BACKEND_API_URL not configured"
 
-    url = f"{BACKEND_API_URL}/api/device/schedule?day={day}&month={month}&year={year}"
+    query = {"day": day, "month": month, "year": year}
+    if device_id:
+        query["device_id"] = device_id
+    if firmware:
+        query["firmware"] = firmware
+
+    url = f"{BACKEND_API_URL}/api/device/schedule?{urllib.parse.urlencode(query)}"
     req = urllib.request.Request(
         url,
         headers={"Authorization": f"Bearer {BACKEND_SERVICE_TOKEN}"},
@@ -79,7 +86,7 @@ def lambda_handler(event, context):
         _send_to_client(event, {"status": "error", "message": "Missing day/month/year"})
         return {"statusCode": 400}
 
-    schedule_response, error = _fetch_schedule(day, month, year)
+    schedule_response, error = _fetch_schedule(day, month, year, body.get("deviceId"), body.get("firmware"))
 
     if error:
         _send_to_client(event, {"status": "error", "message": error})

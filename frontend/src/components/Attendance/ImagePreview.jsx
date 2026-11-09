@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { LuBookOpen, LuClock, LuGraduationCap } from 'react-icons/lu'
+import { LuBookOpen, LuClock, LuGraduationCap, LuShieldCheck } from 'react-icons/lu'
 import { requestImageUrls } from '../../api/websocket/faceManagement'
 import { useWebSocket } from '../../contexts/WebSocketContext'
-import { Avatar, Button, Modal, StatusChip } from '../ui'
+import { Avatar, Button, Modal, Notice, StatusChip } from '../ui'
 
 const REMARK_VARIANT = { 'On Time': 'present', Late: 'late', Absent: 'absent' }
 const REMARK_LABEL = { 'On Time': 'On time', Late: 'Late', Absent: 'Absent' }
+const LIVENESS_LABEL = { real: 'Passed', fake: 'Needs review', unavailable: 'Unavailable' }
 
 export default function ImagePreview({ isOpen, onClose, attendanceRecord }) {
     const ws = useWebSocket()
@@ -57,9 +58,22 @@ export default function ImagePreview({ isOpen, onClose, attendanceRecord }) {
 
                 <div className="text-sm">
                     <Row icon={LuBookOpen} label="Subject" value={subjectName || '—'} />
-                    <Row icon={LuGraduationCap} label="Class" value={className || '—'} />
+                    {className && <Row icon={LuGraduationCap} label="Class" value={className} />}
                     <Row icon={LuClock} label="Recorded at" value={`${status === 1 ? time : '—'} · ${day}/${month}/${year}`} />
+                    {attendanceRecord.liveness_verdict && (
+                        <Row
+                            icon={LuShieldCheck}
+                            label="Liveness check"
+                            value={`${LIVENESS_LABEL[attendanceRecord.liveness_verdict] ?? attendanceRecord.liveness_verdict}${
+                                attendanceRecord.liveness_score != null ? ` · ${Math.round(attendanceRecord.liveness_score * 100)}%` : ''
+                            }`}
+                        />
+                    )}
                 </div>
+
+                {attendanceRecord.liveness_verdict === 'fake' && (
+                    <Notice>The anti-spoofing check flagged this image. Compare the capture with the student before relying on this record.</Notice>
+                )}
             </div>
         </Modal>
     )

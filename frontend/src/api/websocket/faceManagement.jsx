@@ -19,13 +19,22 @@ const IMAGE_URL_BATCH_SIZE = 30
  * Xin URL đọc ảnh ký ngắn hạn, vì bucket S3 là private. Gửi tuần tự từng nhóm do
  * requestAction ghép phản hồi theo tên action, không phân biệt được hai yêu cầu song song.
  */
-export const requestImageUrls = async (ws, keys) => {
+const fetchImageUrls = async (ws, keys) => {
     const urls = {}
     for (let index = 0; index < keys.length; index += IMAGE_URL_BATCH_SIZE) {
         const res = await ws.requestAction('getImageUrls', { keys: keys.slice(index, index + IMAGE_URL_BATCH_SIZE) }, { timeout: 8000 })
         Object.assign(urls, res?.urls)
     }
     return urls
+}
+
+let imageUrlQueue = Promise.resolve()
+
+/** Xếp hàng để các màn hình gọi cùng lúc không nhận nhầm phản hồi của nhau. */
+export const requestImageUrls = (ws, keys) => {
+    const result = imageUrlQueue.then(() => fetchImageUrls(ws, keys))
+    imageUrlQueue = result.catch(() => {})
+    return result
 }
 
 export const listFaces = (ws, classId) => {

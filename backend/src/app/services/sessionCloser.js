@@ -4,7 +4,7 @@ import { toVietnamParts } from '../helpers/dates.js';
 const CHECK_INTERVAL_MS = 60 * 1000;
 
 /** Sinh viên phải có mặt: thuộc lớp được gán vào môn, hoặc được thêm riêng vào môn. */
-const rosterWhere = (subjectId) => ({
+export const rosterWhere = (subjectId) => ({
     status: 'active',
     OR: [{ subjects: { some: { subjectId } } }, { classes: { some: { class: { subjects: { some: { subjectId } } } } } }]
 });

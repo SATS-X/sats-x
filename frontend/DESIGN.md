@@ -23,9 +23,15 @@ The interface follows the ArchFlow visual language and carries the SATS X identi
 - App pages use the sticky glass `Header` with horizontal navigation and a 1200px content column. Forms and settings narrow to 880–960px.
 - Marketing and sign-in surfaces use `src/styles/marketing.module.css`.
 
+## Signature surfaces
+
+- **Canvas band:** `.canvas-band` adds a fine grid and teal light to the one main block on a page, such as the session hero. Use it once per page, not on every card.
+- **Roll sheet:** the Live page treats the session roster as the page. A mono ink stamp (`On time`, `Late`, `Absent`) marks each arrival, and pending rows stay quiet.
+- **Status lamp:** a pulsing `animate-lamp` dot means a camera is online. Reserve it for live hardware state.
+
 ## Motion
 
-Entrance animations only translate. Content must stay visible if an animation is paused, so never start from `opacity: 0`.
+Entrance animations only translate. Content must stay visible if an animation is paused, so never start from `opacity: 0`. The arrival stamp and row highlight run only when a student actually arrives, never on a data refresh.
 
 ## Brand
 

@@ -54,6 +54,13 @@ services:
       - ../frontend/dist:/usr/share/nginx/html:ro
       - ../frontend/deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
+  liveness:
+    build: ../liveness
+    container_name: attendance-liveness
+    restart: unless-stopped
+    environment:
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
+
   # Lớp HTTPS duy nhất mở ra internet. Caddy tự xin và gia hạn chứng chỉ Let's Encrypt.
   # Cookie refresh token cần Secure nên production bắt buộc phải có HTTPS.
   caddy:
@@ -62,6 +69,7 @@ services:
     restart: unless-stopped
     depends_on:
       - web
+      - liveness
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS}
     volumes:

@@ -1,4 +1,13 @@
 {$SITE_ADDRESS} {
 	encode gzip
-	reverse_proxy web:80
+
+	# Chỉ mở đúng endpoint có xác thực; trang thử nghiệm của liveness không ra internet.
+	handle /liveness/v1/check {
+		uri strip_prefix /liveness
+		reverse_proxy liveness:8000
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
 }

@@ -32,8 +32,14 @@ COLLECTION_PREFIX = os.environ.get("COLLECTION_PREFIX", "attendance-system")
 FACE_MATCH_THRESHOLD = float(os.environ.get("FACE_MATCH_THRESHOLD", "95"))
 BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "")
 BACKEND_SERVICE_TOKEN = os.environ.get("BACKEND_SERVICE_TOKEN", "")
+CONNECTIONS_TABLE = os.environ.get("CONNECTIONS_TABLE", "")
+LIVENESS_URL = os.environ.get("LIVENESS_URL", "")
+LIVENESS_MODE = os.environ.get("LIVENESS_MODE", "off")  # off | monitor | enforce
+LIVENESS_TIMEOUT_SECONDS = 3
 
 VN_TZ = timezone(timedelta(hours=7))
+
+dynamodb = boto3.client("dynamodb")
 
 
 def _get_apigw_client(event):
@@ -83,10 +89,80 @@ def _search_face(image_bytes, collection_id):
         "face_id": match["Face"]["FaceId"],
         "external_image_id": match["Face"].get("ExternalImageId", ""),
         "similarity": round(match["Similarity"], 2),
+        "box": response.get("SearchedFaceBoundingBox"),
     }
 
 
-def _notify_backend(student_id, class_id, image_key):
+def _check_liveness(image_data, box):
+    """Return {verdict, score}, or None when the check is turned off.
+
+    A liveness outage must never stop attendance, so every failure is reported
+    as "unavailable" rather than raised.
+    """
+    if LIVENESS_MODE not in ("monitor", "enforce") or not LIVENESS_URL:
+        return None
+
+    request = urllib.request.Request(
+        LIVENESS_URL,
+        data=json.dumps({"image": image_data, "box": box}).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {BACKEND_SERVICE_TOKEN}",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=LIVENESS_TIMEOUT_SECONDS) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            return {"verdict": result["verdict"], "score": result["score"]}
+    except (OSError, ValueError, KeyError) as error:
+        logger.warning("Liveness check unavailable: %s", error)
+        return {"verdict": "unavailable", "score": None}
+
+
+def _broadcast(event, payload):
+    """Push a live event to every signed-in console. Failures only cost the live update."""
+    if not CONNECTIONS_TABLE:
+        return
+
+    message = json.dumps({
+        "action": "attendanceEvent",
+        "timestamp": datetime.now(VN_TZ).isoformat(),
+        **payload,
+    }).encode("utf-8")
+
+    try:
+        client = _get_apigw_client(event)
+        scan_args = {
+            "TableName": CONNECTIONS_TABLE,
+            "FilterExpression": "#role IN (:teacher, :admin)",
+            "ExpressionAttributeNames": {"#role": "role"},
+            "ExpressionAttributeValues": {":teacher": {"S": "teacher"}, ":admin": {"S": "admin"}},
+            "ProjectionExpression": "connectionId",
+        }
+
+        while True:
+            page = dynamodb.scan(**scan_args)
+            for item in page.get("Items", []):
+                _post_event(client, item["connectionId"]["S"], message)
+            if "LastEvaluatedKey" not in page:
+                break
+            scan_args["ExclusiveStartKey"] = page["LastEvaluatedKey"]
+    except Exception:
+        logger.exception("Could not broadcast the attendance event")
+
+
+def _post_event(client, connection_id, message):
+    try:
+        client.post_to_connection(ConnectionId=connection_id, Data=message)
+    except client.exceptions.GoneException:
+        dynamodb.delete_item(TableName=CONNECTIONS_TABLE, Key={"connectionId": {"S": connection_id}})
+    except Exception:
+        logger.warning("Could not reach connection %s", connection_id)
+
+
+def _notify_backend(student_id, class_id, image_key, device_id, liveness):
     """Ghi điểm danh thật vào DB qua backend. Trả về (status_code, body_dict);
     status_code là None nếu không gọi được backend (network/DNS lỗi)."""
     if not BACKEND_API_URL:
@@ -96,6 +172,8 @@ def _notify_backend(student_id, class_id, image_key):
         "studentId": student_id,
         "classId": class_id,
         "imageKey": image_key,
+        "deviceId": device_id,
+        "liveness": liveness,
         "timestamp": datetime.now(VN_TZ).isoformat(),
     }).encode("utf-8")
 
@@ -148,12 +226,15 @@ def _handle_compare(event, body):
 
     collection_id = f"{COLLECTION_PREFIX}-{class_id}"
     match_result = _search_face(image_bytes, collection_id)
+    device_id = body.get("deviceId", "")
+    event_base = {"classId": class_id, "deviceId": device_id, "imageKey": image_key}
 
     if not match_result:
         _send_to_client(event, {
             "status": "success",
             "face_compare_result": {"match_found": False},
         })
+        _broadcast(event, {**event_base, "type": "unknown"})
         return
 
     student_id = match_result["external_image_id"]
@@ -163,11 +244,42 @@ def _handle_compare(event, body):
         "external_id": student_id,
         "similarity": match_result["similarity"],
     }
+    event_base.update({
+        "studentId": student_id,
+        "similarity": match_result["similarity"],
+    })
 
-    status_code, backend_body = _notify_backend(student_id, class_id, image_key)
+    liveness = _check_liveness(image_data, match_result["box"])
+    event_base["liveness"] = liveness
+
+    if LIVENESS_MODE == "enforce" and liveness and liveness["verdict"] == "fake":
+        _send_to_client(event, {
+            "status": "partial_success",
+            "face_compare_result": face_compare_result,
+            "attendance_result": {
+                "message": "Presentation attack suspected",
+                "reason": "LIVENESS_FAILED",
+            },
+        })
+        _broadcast(event, {**event_base, "type": "rejected", "message": "Presentation attack suspected"})
+        return
+
+    status_code, backend_body = _notify_backend(student_id, class_id, image_key, device_id, liveness)
 
     if status_code in (200, 201):
         data = backend_body.get("data", {})
+        info = data.get("class_info", {})
+        if not backend_body.get("duplicate"):
+            _broadcast(event, {
+                **event_base,
+                "type": "recorded",
+                "studentName": data.get("student_name"),
+                "remark": data.get("remark"),
+                "time": data.get("time"),
+                "subject": info.get("subject"),
+                "room": info.get("room"),
+                "scheduleId": info.get("schedule_id"),
+            })
         _send_to_client(event, {
             "status": "success",
             "face_compare_result": face_compare_result,
@@ -190,6 +302,7 @@ def _handle_compare(event, body):
                 "reason": backend_body.get("reason", ""),
             },
         })
+        _broadcast(event, {**event_base, "type": "not_recorded", "message": backend_body.get("message", "")})
 
 
 def _handle_upload(event, body):

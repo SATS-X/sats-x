@@ -220,6 +220,16 @@ static const char AWS_CERT_PRIVATE_ESP32_CAM[] PROGMEM = R"EOF(...)EOF";
 cp lib/secrets/aws_root_ca.h lib/secrets/secrets_esp32.h lib/secrets/secrets_esp32-cam.h include/
 ```
 
+### Over-the-air updates
+
+The first flash after this change must be over USB because the partition table now has two app slots. Later versions can be installed from the Devices page by an administrator:
+
+1. Raise `FIRMWARE_VERSION` in `platformio.ini`.
+2. Run `scripts/publish_firmware.sh <s3-bucket-name>`.
+3. Open **Devices**, then choose **Update firmware** on the camera.
+
+The camera checks the file's MD5 before installing it and keeps its current firmware if the download fails.
+
 ---
 
 ## 💻 Build, Flashing & Monitoring with PlatformIO

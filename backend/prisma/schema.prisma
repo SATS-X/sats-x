@@ -130,6 +130,24 @@ model Subject {
   @@map("subject")
 }
 
+// Camera tự xuất hiện ở đây sau lần kết nối đầu tiên. Gán phòng để thiết bị chỉ
+// nhận lịch của phòng đó. status: active | disabled
+model Device {
+  deviceId        String    @id @map("device_id") @db.VarChar(64)
+  name            String?   @db.VarChar(100)
+  room            String?   @db.VarChar(64)
+  status          String    @default("active") @db.VarChar(20)
+  firmwareVersion String?   @map("firmware_version") @db.VarChar(32)
+  lastSeenAt      DateTime? @map("last_seen_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  attendances Attendance[]
+
+  @@map("device")
+}
+
 model Term {
   id        Int      @id @default(autoincrement())
   name      String   @unique @db.VarChar(100)
@@ -190,6 +208,12 @@ model Attendance {
   // Null chỉ với bản ghi cũ không ghép được vào buổi học nào.
   scheduleId Int? @map("schedule_id")
 
+  deviceId String? @map("device_id") @db.VarChar(64)
+
+  // real | fake | unavailable. Null khi bản ghi không qua bước kiểm tra liveness.
+  livenessVerdict String? @map("liveness_verdict") @db.VarChar(16)
+  livenessScore   Float?  @map("liveness_score")
+
   time      String @db.VarChar(5) // "HH:MM" do ESP32-CAM gửi kèm ảnh
   day       Int
   month     Int
@@ -208,6 +232,7 @@ model Attendance {
   student Student @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
   subject Subject @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
   schedule Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  device   Device?   @relation(fields: [deviceId], references: [deviceId], onDelete: SetNull)
 
   // Mỗi sinh viên chỉ có một bản ghi cho một buổi học, kể cả khi hai request đến cùng lúc.
   @@unique([studentId, scheduleId])
