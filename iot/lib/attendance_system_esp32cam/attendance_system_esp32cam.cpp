@@ -14,6 +14,8 @@
 // mỗi lần API Gateway được tạo lại (destroy/apply lại sẽ sinh API ID mới).
 const char* ws_url = "wss://7i91rxj536.execute-api.ap-southeast-1.amazonaws.com/production";
 
+static const unsigned long SCHEDULE_REFRESH_MS = 60000;
+
 void attendanceSystemInit() {
     displayInit();
     cameraInit();
@@ -52,6 +54,15 @@ void attendanceSystemUpdate() {
 
     // Auto-reconnect WebSocket if disconnected
     reconnectWebsocket();
+
+    // Xin lại lịch định kỳ để thiết bị chuyển đúng lớp khi sang tiết mới.
+    static unsigned long lastScheduleRefresh = millis();
+    if (millis() - lastScheduleRefresh >= SCHEDULE_REFRESH_MS) {
+        lastScheduleRefresh = millis();
+        if (wsClient.available()) {
+            requestScheduleUpdate();
+        }
+    }
 
     static unsigned long lastTimeUpdate = 0;
     if (millis() - lastTimeUpdate >= 1000) {

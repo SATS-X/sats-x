@@ -1,4 +1,5 @@
 import prisma from '../../config/db/index.js';
+import { dateRangeFilter } from '../helpers/dates.js';
 import { paginationMeta, parsePagination } from '../helpers/pagination.js';
 
 const fail = (res, status, error, message) =>
@@ -42,6 +43,7 @@ const toAttendanceRow = (a) => {
         student_name: a.student?.fullName ?? null,
         subject_id: a.subjectId,
         subject_name: a.subject?.name ?? null,
+        schedule_id: a.scheduleId,
         status: a.status,
         remark: a.remark,
         image_key: a.imageKey,
@@ -50,18 +52,53 @@ const toAttendanceRow = (a) => {
     };
 };
 
-/** GET /api/attendance — hỗ trợ ?page=&limit= (không truyền thì trả toàn bộ) */
+/** Dựng điều kiện lọc từ query string: q, class_id, subject_id, remark, from, to. */
+const buildAttendanceWhere = (query) => {
+    const { filter, error } = dateRangeFilter(query);
+    if (error) return { error };
+
+    const where = { ...filter };
+    const search = typeof query.q === 'string' ? query.q.trim() : '';
+
+    if (query.subject_id) where.subjectId = query.subject_id;
+    if (query.remark) where.remark = query.remark;
+
+    // Tìm kiếm và khoảng ngày đều dùng OR, nên phải gộp bằng AND để không ghi đè nhau.
+    const conditions = [];
+    if (search) {
+        conditions.push({
+            OR: [
+                { studentId: { contains: search, mode: 'insensitive' } },
+                { student: { fullName: { contains: search, mode: 'insensitive' } } }
+            ]
+        });
+    }
+    if (query.class_id) {
+        conditions.push({ student: { classes: { some: { classId: query.class_id } } } });
+    }
+    if (conditions.length > 0) where.AND = conditions;
+
+    return { where };
+};
+
+/** GET /api/attendance — lọc theo q, class_id, subject_id, remark, from, to và phân trang ?page=&limit= */
 export const getAllAttendance = async (req, res) => {
     try {
         const pagination = parsePagination(req.query);
+        const { where, error: filterError } = buildAttendanceWhere(req.query);
+
+        if (filterError) {
+            return fail(res, 400, 'ValidationError', filterError);
+        }
 
         const [records, total] = await Promise.all([
             prisma.attendance.findMany({
+                where,
                 include: WITH_RELATIONS,
                 orderBy: NEWEST_FIRST,
                 ...(pagination.enabled ? { skip: pagination.skip, take: pagination.take } : {})
             }),
-            pagination.enabled ? prisma.attendance.count() : Promise.resolve(null)
+            pagination.enabled ? prisma.attendance.count({ where }) : Promise.resolve(null)
         ]);
 
         const data = records.map(toAttendanceRow);

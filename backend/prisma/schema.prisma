@@ -130,10 +130,29 @@ model Subject {
   @@map("subject")
 }
 
+model Term {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  schedules Schedule[]
+
+  @@map("term")
+}
+
+// Mỗi dòng là MỘT buổi học cụ thể trong một ngày. Lịch lặp hằng tuần được sinh
+// thành nhiều dòng dùng chung series_id.
+// status: scheduled | completed | no_attendance | cancelled
 model Schedule {
   id        Int     @id @default(autoincrement())
   subjectId String  @map("subject_id") @db.VarChar(32)
   teacherId String? @map("teacher_id") @db.VarChar(64)
+  termId    Int?    @map("term_id")
+  seriesId  String? @map("series_id") @db.VarChar(36)
 
   // Ngày tách thành 3 cột vì thiết bị ESP32 gửi lên đúng dạng này
   // (websocketSendSchedule gửi day/month/year rời).
@@ -152,8 +171,13 @@ model Schedule {
 
   subject Subject  @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
   teacher Teacher? @relation(fields: [teacherId], references: [teacherId], onDelete: SetNull)
+  term    Term?    @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  attendances Attendance[]
 
   @@index([teacherId])
+  @@index([termId])
+  @@index([seriesId])
   @@index([year, month, day])
   @@map("schedule")
 }
@@ -162,6 +186,9 @@ model Attendance {
   id        Int    @id @default(autoincrement())
   studentId String @map("student_id") @db.VarChar(32)
   subjectId String @map("subject_id") @db.VarChar(32)
+
+  // Null chỉ với bản ghi cũ không ghép được vào buổi học nào.
+  scheduleId Int? @map("schedule_id")
 
   time      String @db.VarChar(5) // "HH:MM" do ESP32-CAM gửi kèm ảnh
   day       Int
@@ -180,9 +207,13 @@ model Attendance {
 
   student Student @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
   subject Subject @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
+  schedule Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
 
+  // Mỗi sinh viên chỉ có một bản ghi cho một buổi học, kể cả khi hai request đến cùng lúc.
+  @@unique([studentId, scheduleId])
   // Chỉ mục phục vụ ORDER BY year/month/day mà mọi query điểm danh đều dùng.
   @@index([year(sort: Desc), month(sort: Desc), day(sort: Desc)])
+  @@index([scheduleId])
   @@index([studentId])
   @@index([subjectId])
   @@map("attendance")

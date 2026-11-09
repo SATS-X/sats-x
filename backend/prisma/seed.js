@@ -82,29 +82,33 @@ const run = async () => {
     }
 
     await prisma.schedule.deleteMany({ where: { subjectId: SUBJECT_ID } });
-    await prisma.schedule.create({
-        data: {
-            subjectId: SUBJECT_ID,
-            teacherId: teacher.teacherId,
-            day: 20,
-            month: 8,
-            year: 2026,
-            dayOfWeek: 'Thursday',
-            room: 'A2-401',
-            startTime: '07:30',
-            endTime: '09:30'
-        }
-    });
+    const pastSession = (day) =>
+        prisma.schedule.create({
+            data: {
+                subjectId: SUBJECT_ID,
+                teacherId: teacher.teacherId,
+                day,
+                month: 8,
+                year: 2026,
+                dayOfWeek: 'Thursday',
+                room: 'A2-401',
+                startTime: '07:30',
+                endTime: '09:30',
+                status: 'completed'
+            }
+        });
+
+    const [earlier, later] = [await pastSession(13), await pastSession(20)];
 
     // Điểm danh: Vi đúng giờ, Anh trễ, Bao vắng — đủ ba trạng thái để kiểm tra thống kê.
     await prisma.attendance.deleteMany({ where: { subjectId: SUBJECT_ID } });
     await prisma.attendance.createMany({
         data: [
-            { studentId: 'N22DCCN001', subjectId: SUBJECT_ID, time: '07:28', day: 20, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 1, remark: 'On Time' },
-            { studentId: 'N22DCCN002', subjectId: SUBJECT_ID, time: '07:45', day: 20, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 1, remark: 'Late' },
-            { studentId: 'N22DCCN003', subjectId: SUBJECT_ID, time: '00:00', day: 20, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 0, remark: 'Absent' },
-            { studentId: 'N22DCCN001', subjectId: SUBJECT_ID, time: '07:31', day: 13, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 1, remark: 'On Time' },
-            { studentId: 'N22DCCN002', subjectId: SUBJECT_ID, time: '00:00', day: 13, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 0, remark: 'Absent' }
+            { studentId: 'N22DCCN001', subjectId: SUBJECT_ID, scheduleId: later.id, time: '07:28', day: 20, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 1, remark: 'On Time' },
+            { studentId: 'N22DCCN002', subjectId: SUBJECT_ID, scheduleId: later.id, time: '07:45', day: 20, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 1, remark: 'Late' },
+            { studentId: 'N22DCCN003', subjectId: SUBJECT_ID, scheduleId: later.id, time: '00:00', day: 20, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 0, remark: 'Absent' },
+            { studentId: 'N22DCCN001', subjectId: SUBJECT_ID, scheduleId: earlier.id, time: '07:31', day: 13, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 1, remark: 'On Time' },
+            { studentId: 'N22DCCN002', subjectId: SUBJECT_ID, scheduleId: earlier.id, time: '00:00', day: 13, month: 8, year: 2026, dayOfWeek: 'Thursday', status: 0, remark: 'Absent' }
         ]
     });
 

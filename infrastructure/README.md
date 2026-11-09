@@ -207,6 +207,8 @@ terraform apply \
   -var="ssh_allowed_cidr=$(curl -s https://checkip.amazonaws.com)/32"
 ```
 
+The backend host accepts only ports 80 and 443. Caddy obtains an HTTPS certificate for the free `sslip.io` hostname from `terraform output -raw backend_site_address`. Set that value as `SITE_ADDRESS` in the backend environment, and use `https://<that hostname>` for `CORS_ORIGINS` and `cors_allowed_origins`.
+
 ---
 
 ## 🔑 Terraform Outputs & Secrets Management
@@ -215,7 +217,7 @@ Upon successful execution, Terraform outputs essential endpoints and credentials
 
 ```bash
 # Backend REST & WebSocket URLs
-terraform output backend_url            # http://<EC2_IP>:4000
+terraform output backend_url            # https://<EC2-IP-with-dashes>.sslip.io
 terraform output websocket_url          # wss://<API_ID>.execute-api.ap-southeast-1.amazonaws.com/production
 
 # SSH Access to EC2 Host

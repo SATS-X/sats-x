@@ -4,12 +4,8 @@ import { getAllStudents } from '../../api/student/getStudent'
 import { getClasses } from '../../api/class/getClasses'
 import { getAllAttendance } from '../../api/attendance/getAttendance'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { todayISO } from '../../lib/date'
 import { StatStrip } from '../ui'
-
-const isToday = (record) => {
-    const now = new Date()
-    return record.day === now.getDate() && record.month === now.getMonth() + 1 && record.year === now.getFullYear()
-}
 
 export default function DashboardStats() {
     const { t } = useLanguage()
@@ -21,10 +17,11 @@ export default function DashboardStats() {
         let isMounted = true
 
         const fetchStats = async () => {
+            const today = todayISO()
             const [studentsRes, classesRes, attendanceRes] = await Promise.allSettled([
                 getAllStudents(),
                 getClasses(),
-                getAllAttendance()
+                getAllAttendance({ from: today, to: today })
             ])
 
             if (!isMounted) return
@@ -38,7 +35,7 @@ export default function DashboardStats() {
             }
 
             if (attendanceRes.status === 'fulfilled') {
-                const records = (attendanceRes.value?.data ?? []).filter(isToday)
+                const records = attendanceRes.value?.data ?? []
                 const present = records.filter((r) => r.status === 1).length
                 const onTime = records.filter((r) => r.remark === 'On Time').length
                 setTodayStats({

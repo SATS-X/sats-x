@@ -70,6 +70,9 @@ def _search_face(image_bytes, collection_id):
     except rekognition.exceptions.InvalidParameterException:
         logger.warning("No face detected in image")
         return None
+    except rekognition.exceptions.ResourceNotFoundException:
+        logger.warning("Collection %s does not exist yet", collection_id)
+        return None
 
     matches = response.get("FaceMatches", [])
     if not matches:

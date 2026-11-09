@@ -31,6 +31,10 @@ locals {
     LOG_LEVEL            = var.environment == "prod" ? "INFO" : "DEBUG"
   }
 
+  # Lớp tạo từ giao diện có collection riêng được sinh khi đăng ký khuôn mặt đầu
+  # tiên, nên quyền phải phủ theo tiền tố thay vì chỉ các lớp trong var.class_ids.
+  collection_arn_pattern = "arn:aws:rekognition:${local.region}:${local.account_id}:collection/${var.project}-*"
+
   backend_env = {
     # Trỏ thẳng vào EC2 vừa tạo — không cần điền tay var.backend_api_url nữa.
     BACKEND_API_URL       = module.ec2_backend.backend_url
@@ -97,7 +101,7 @@ module "lambda_attendance" {
     {
       sid       = "SearchFaces"
       actions   = ["rekognition:SearchFacesByImage"]
-      resources = module.rekognition.collection_arns
+      resources = [local.collection_arn_pattern]
     },
   ]
 }
@@ -136,6 +140,11 @@ module "lambda_face_management" {
       resources = ["${module.storage.bucket_arn}/classes/*"]
     },
     {
+      sid       = "ReadAttendanceImages"
+      actions   = ["s3:GetObject"]
+      resources = ["${module.storage.bucket_arn}/history/*"]
+    },
+    {
       sid       = "ListBucket"
       actions   = ["s3:ListBucket"]
       resources = [module.storage.bucket_arn]
@@ -143,12 +152,13 @@ module "lambda_face_management" {
     {
       sid = "ManageFaces"
       actions = [
+        "rekognition:CreateCollection",
         "rekognition:IndexFaces",
         "rekognition:DeleteFaces",
         "rekognition:ListFaces",
         "rekognition:DescribeCollection",
       ]
-      resources = module.rekognition.collection_arns
+      resources = [local.collection_arn_pattern]
     },
   ]
 }
@@ -221,6 +231,11 @@ module "websocket_api" {
     # không thể đi qua WebSocket: API Gateway đóng kết nối (code 1009) với mọi
     # frame > 32KB, mà trình duyệt không tự chia nhỏ frame.
     "getUploadUrl" = {
+      lambda_invoke_arn    = module.lambda_face_management.invoke_arn
+      lambda_function_name = module.lambda_face_management.function_name
+    }
+    # Bucket là private nên trình duyệt xem ảnh qua URL ký ngắn hạn.
+    "getImageUrls" = {
       lambda_invoke_arn    = module.lambda_face_management.invoke_arn
       lambda_function_name = module.lambda_face_management.function_name
     }

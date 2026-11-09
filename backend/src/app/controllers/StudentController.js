@@ -134,6 +134,11 @@ export const createStudent = async (req, res) => {
             return fail(res, 400, 'ValidationError', 'Missing student_id or full_name');
         }
 
+        // Mã sinh viên được dùng làm tên ảnh và ExternalImageId trên Rekognition.
+        if (typeof student_id !== 'string' || !/^[A-Za-z0-9._-]{1,32}$/.test(student_id)) {
+            return fail(res, 400, 'ValidationError', 'Student ID may only contain letters, numbers, dots, underscores, and hyphens');
+        }
+
         const student = await prisma.student.create({
             data: {
                 studentId: student_id,
@@ -163,7 +168,7 @@ export const createStudent = async (req, res) => {
     }
 };
 
-/** PUT /api/student/:student_id — chỉ sửa thông tin cá nhân, không đổi mã SV (khoá chính). */
+/** PUT /api/student/:student_id — sửa thông tin và lớp (class_ids); không đổi mã SV (khoá chính). */
 export const updateStudent = async (req, res) => {
     try {
         const { student_id } = req.params;
@@ -175,6 +180,14 @@ export const updateStudent = async (req, res) => {
             if (req.body?.[apiField] !== undefined) {
                 data[column] = req.body[apiField] === '' ? null : req.body[apiField];
             }
+        }
+
+        if (req.body?.class_ids !== undefined) {
+            const classIds = req.body.class_ids;
+            if (!Array.isArray(classIds) || !classIds.every((id) => typeof id === 'string')) {
+                return fail(res, 400, 'ValidationError', 'class_ids must be a list of class IDs');
+            }
+            data.classes = { deleteMany: {}, create: [...new Set(classIds)].map((classId) => ({ classId })) };
         }
 
         if (Object.keys(data).length === 0) {
@@ -195,6 +208,9 @@ export const updateStudent = async (req, res) => {
     } catch (error) {
         if (error.code === 'P2025') {
             return fail(res, 404, 'NotFound', `Student not found: ${req.params.student_id}`);
+        }
+        if (error.code === 'P2003') {
+            return fail(res, 404, 'ClassNotFound', 'A selected class no longer exists');
         }
         console.error('Error in updateStudent:', error);
         return fail(res, 500, 'Internal server error', error.message);

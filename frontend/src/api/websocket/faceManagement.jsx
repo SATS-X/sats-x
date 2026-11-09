@@ -13,8 +13,23 @@
  */
 export const WS_INLINE_IMAGE_MAX_BASE64 = 30 * 1024
 
-export const listFaces = (ws, classId = 'D22CQCI01-N') => {
-    if (!ws) return false
+const IMAGE_URL_BATCH_SIZE = 30
+
+/**
+ * Xin URL đọc ảnh ký ngắn hạn, vì bucket S3 là private. Gửi tuần tự từng nhóm do
+ * requestAction ghép phản hồi theo tên action, không phân biệt được hai yêu cầu song song.
+ */
+export const requestImageUrls = async (ws, keys) => {
+    const urls = {}
+    for (let index = 0; index < keys.length; index += IMAGE_URL_BATCH_SIZE) {
+        const res = await ws.requestAction('getImageUrls', { keys: keys.slice(index, index + IMAGE_URL_BATCH_SIZE) }, { timeout: 8000 })
+        Object.assign(urls, res?.urls)
+    }
+    return urls
+}
+
+export const listFaces = (ws, classId) => {
+    if (!ws || !classId) return false
     const payload = {
         action: 'listFaces',
         classId
@@ -58,8 +73,8 @@ export const deleteFaceAndImage = (ws, { classId, studentId, faceId }) => {
     return ws.sendMessage ? ws.sendMessage(payload) : false
 }
 
-export const getCollectionInfo = (ws, classId = 'D22CQCI01-N') => {
-    if (!ws) return false
+export const getCollectionInfo = (ws, classId) => {
+    if (!ws || !classId) return false
     const payload = {
         action: 'getCollectionInfo',
         classId

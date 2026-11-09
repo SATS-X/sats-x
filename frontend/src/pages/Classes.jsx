@@ -146,7 +146,7 @@ export default function Classes() {
                                 </div>
 
                                 <div className="flex shrink-0 items-center gap-1">
-                                    <Button as={Link} to="/face-management" variant="ghost" size="sm">
+                                    <Button as={Link} to={`/face-management?class=${encodeURIComponent(cls.class_id)}`} variant="ghost" size="sm">
                                         <LuFingerprint className="h-3.5 w-3.5" aria-hidden="true" />
                                         Manage faces
                                     </Button>
@@ -178,6 +178,9 @@ export default function Classes() {
                     <Field label="Class ID" required>
                         <Input
                             required
+                            maxLength={32}
+                            pattern="[A-Za-z0-9._\-]+"
+                            title="Letters, numbers, dots, underscores, and hyphens only"
                             disabled={modalMode === 'edit'}
                             value={formData.class_id}
                             onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}

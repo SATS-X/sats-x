@@ -56,7 +56,7 @@ export default function RecentAttendance() {
                                 </div>
                             </div>
                             <div className="flex shrink-0 items-center gap-3">
-                                <span className="font-data hidden text-[11px] text-text-tertiary sm:inline">{rec.time || '—'}</span>
+                                <span className="font-data hidden text-[11px] text-text-tertiary sm:inline">{rec.status === 1 ? rec.time : '—'}</span>
                                 <StatusChip variant={REMARK_VARIANT[rec.remark] || 'neutral'}>{REMARK_LABEL[rec.remark] || rec.remark}</StatusChip>
                             </div>
                         </div>

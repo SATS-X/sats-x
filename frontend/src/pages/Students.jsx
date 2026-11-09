@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LuEye, LuFingerprint, LuPlus, LuRefreshCw, LuTrash2 } from 'react-icons/lu'
+import { LuEye, LuFingerprint, LuPencil, LuPlus, LuRefreshCw, LuTrash2 } from 'react-icons/lu'
 import { getAllStudents } from '../api/student/getStudent'
 import { getClasses } from '../api/class/getClasses'
 import { deleteStudent } from '../api/student/deleteStudent'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import StudentDetailModal from '../components/Student/StudentDetailModal'
+import StudentEditModal from '../components/Student/StudentEditModal'
 import AddFaceModal from '../components/FaceManagement/AddFaceModal'
 import {
     Avatar,
@@ -40,6 +41,7 @@ export default function Students() {
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedClass, setSelectedClass] = useState('all')
 
+    const [editModalOpen, setEditModalOpen] = useState(false)
     const [detailModalOpen, setDetailModalOpen] = useState(false)
     const [selectedStudent, setSelectedStudent] = useState(null)
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -58,6 +60,7 @@ export default function Students() {
                         id: s.student_id,
                         name: s.full_name,
                         grade: s.class_names || null,
+                        classIds: s.class_ids ? s.class_ids.split(',') : [],
                         email: s.email,
                         phone: s.phone_number,
                         subjects: s.subject_names || null,
@@ -84,7 +87,7 @@ export default function Students() {
         return students.filter((s) => {
             const search = searchTerm.toLowerCase()
             const matchesSearch = !searchTerm || s.name?.toLowerCase().includes(search) || s.id?.toLowerCase().includes(search)
-            const matchesClass = selectedClass === 'all' || (s.grade && s.grade.includes(selectedClass))
+            const matchesClass = selectedClass === 'all' || s.classIds.includes(selectedClass)
             return matchesSearch && matchesClass
         })
     }, [students, searchTerm, selectedClass])
@@ -175,7 +178,10 @@ export default function Students() {
                                     <div className="font-data text-[11px] text-text-tertiary">{student.phone || '—'}</div>
                                 </TD>
                                 <TD>
-                                    <Link to="/face-management" className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover">
+                                    <Link
+                                        to={student.classIds[0] ? `/face-management?class=${encodeURIComponent(student.classIds[0])}` : '/face-management'}
+                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
+                                    >
                                         <LuFingerprint className="h-3.5 w-3.5" aria-hidden="true" />
                                         Face management
                                     </Link>
@@ -188,6 +194,14 @@ export default function Students() {
                                             onClick={() => {
                                                 setSelectedStudent(student)
                                                 setDetailModalOpen(true)
+                                            }}
+                                        />
+                                        <IconButton
+                                            icon={LuPencil}
+                                            label={`Edit ${student.name}`}
+                                            onClick={() => {
+                                                setSelectedStudent(student)
+                                                setEditModalOpen(true)
                                             }}
                                         />
                                         <IconButton
@@ -208,6 +222,7 @@ export default function Students() {
             )}
 
             <StudentDetailModal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} student={selectedStudent} />
+            <StudentEditModal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} student={selectedStudent} classes={classesList} onSaved={fetchStudentsData} />
 
             <AddFaceModal isOpen={addFaceModalOpen} onClose={() => setAddFaceModalOpen(false)} onAdded={fetchStudentsData} withStudentRecord />
 

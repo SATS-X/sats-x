@@ -29,6 +29,11 @@ UPLOAD_URL_TTL_SECONDS = int(os.environ.get("UPLOAD_URL_TTL_SECONDS", "300"))
 SAFE_ID = re.compile(r"^[A-Za-z0-9._-]+$")
 STAFF_ROLES = {"teacher", "admin"}
 
+# Mỗi URL có security token khá dài, còn tin nhắn WebSocket trả về bị giới hạn kích thước.
+MAX_IMAGE_URLS = 30
+IMAGE_URL_TTL_SECONDS = int(os.environ.get("IMAGE_URL_TTL_SECONDS", "900"))
+IMAGE_KEY = re.compile(r"^(classes|history)/[A-Za-z0-9._/-]+$")
+
 
 def _get_apigw_client(event):
     domain = event["requestContext"]["domainName"]
@@ -101,6 +106,51 @@ def _handle_get_upload_url(event, body):
     })
 
 
+def _index_face(collection_id, image_source, student_id):
+    """Index a face, creating the class collection the first time it is needed."""
+    params = {
+        "CollectionId": collection_id,
+        "Image": image_source,
+        "ExternalImageId": student_id,
+        "DetectionAttributes": ["DEFAULT"],
+        "MaxFaces": 1,
+        "QualityFilter": "AUTO",
+    }
+
+    try:
+        return rekognition.index_faces(**params)
+    except rekognition.exceptions.ResourceNotFoundException:
+        logger.info("Creating collection %s", collection_id)
+        try:
+            rekognition.create_collection(CollectionId=collection_id)
+        except rekognition.exceptions.ResourceAlreadyExistsException:
+            pass
+        return rekognition.index_faces(**params)
+
+
+def _handle_get_image_urls(event, body):
+    """Sign short-lived read URLs because the photo bucket is private."""
+    keys = body.get("keys")
+
+    if not isinstance(keys, list) or not keys or len(keys) > MAX_IMAGE_URLS:
+        _send_error(event, "getImageUrls", f"keys must list between 1 and {MAX_IMAGE_URLS} images")
+        return
+    if not all(isinstance(key, str) and IMAGE_KEY.match(key) and ".." not in key for key in keys):
+        _send_error(event, "getImageUrls", "keys may only reference student or attendance images")
+        return
+
+    urls = {
+        key: s3.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": BUCKET_NAME, "Key": key},
+            ExpiresIn=IMAGE_URL_TTL_SECONDS,
+        )
+        for key in keys
+    }
+
+    _send_to_client(event, {"status": "success", "action": "getImageUrls", "urls": urls})
+
+
 def _handle_add_face(event, body):
     class_id = body.get("classId", "")
     student_id = body.get("studentId", "")
@@ -138,14 +188,7 @@ def _handle_add_face(event, body):
 
     collection_id = f"{COLLECTION_PREFIX}-{class_id}"
 
-    response = rekognition.index_faces(
-        CollectionId=collection_id,
-        Image=image_source,
-        ExternalImageId=student_id,
-        DetectionAttributes=["DEFAULT"],
-        MaxFaces=1,
-        QualityFilter="AUTO",
-    )
+    response = _index_face(collection_id, image_source, student_id)
 
     face_records = response.get("FaceRecords", [])
     if not face_records:
@@ -241,7 +284,12 @@ def _handle_list_faces(event, body):
         if next_token:
             kwargs["NextToken"] = next_token
 
-        response = rekognition.list_faces(**kwargs)
+        try:
+            response = rekognition.list_faces(**kwargs)
+        except rekognition.exceptions.ResourceNotFoundException:
+            # Lớp chưa đăng ký khuôn mặt nào thì collection chưa được tạo.
+            break
+
         for face in response.get("Faces", []):
             faces.append({
                 "faceId": face["FaceId"],
@@ -282,11 +330,19 @@ def _handle_get_collection_info(event, body):
             "creationTimestamp": str(response.get("CreationTimestamp", "")),
         })
     except rekognition.exceptions.ResourceNotFoundException:
-        _send_error(event, "getCollectionInfo", f"Collection not found: {collection_id}")
+        _send_to_client(event, {
+            "status": "success",
+            "action": "getCollectionInfo",
+            "classId": class_id,
+            "collectionId": collection_id,
+            "faceCount": 0,
+            "creationTimestamp": "",
+        })
 
 
 ROUTE_HANDLERS = {
     "getUploadUrl": _handle_get_upload_url,
+    "getImageUrls": _handle_get_image_urls,
     "addFace": _handle_add_face,
     "deleteFace": _handle_delete_face,
     "deleteFaceAndImage": _handle_delete_face_and_image,

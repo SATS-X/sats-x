@@ -6,7 +6,7 @@ aws_profile = "default"
 # Origin của frontend được phép PUT ảnh thẳng lên S3 bằng presigned URL
 # (route getUploadUrl). Thiếu origin production ở đây thì trình duyệt chặn PUT
 # vì CORS, và AddFaceModal sẽ tự rơi về đường dự phòng gửi ảnh nén qua WebSocket.
-cors_allowed_origins = ["http://localhost:5173", "http://52.220.6.142"]
+cors_allowed_origins = ["http://localhost:3000", "https://52-220-6-142.sslip.io"]
 
 class_ids = ["D22CQCI01-N", "D22CQCI01-B", "D22CQVT01-N"]
 

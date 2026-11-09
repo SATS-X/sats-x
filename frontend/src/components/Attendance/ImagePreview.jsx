@@ -1,14 +1,36 @@
+import { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { LuClock, LuGraduationCap } from 'react-icons/lu'
+import { LuBookOpen, LuClock, LuGraduationCap } from 'react-icons/lu'
+import { requestImageUrls } from '../../api/websocket/faceManagement'
+import { useWebSocket } from '../../contexts/WebSocketContext'
 import { Avatar, Button, Modal, StatusChip } from '../ui'
 
 const REMARK_VARIANT = { 'On Time': 'present', Late: 'late', Absent: 'absent' }
 const REMARK_LABEL = { 'On Time': 'On time', Late: 'Late', Absent: 'Absent' }
 
 export default function ImagePreview({ isOpen, onClose, attendanceRecord }) {
+    const ws = useWebSocket()
+    const [imageUrl, setImageUrl] = useState(null)
+    const imageKey = isOpen ? attendanceRecord?.image_key : null
+
+    useEffect(() => {
+        setImageUrl(null)
+        if (!imageKey || !ws.isConnected) return undefined
+
+        let active = true
+        requestImageUrls(ws, [imageKey])
+            .then((urls) => active && setImageUrl(urls[imageKey] ?? null))
+            .catch((err) => console.warn('Could not load the capture image:', err.message))
+
+        return () => {
+            active = false
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [imageKey, ws.isConnected])
+
     if (!attendanceRecord) return null
 
-    const { student_name: studentName, student_id: studentId, class_names: className, time, day, month, year, remark } = attendanceRecord
+    const { student_name: studentName, student_id: studentId, class_names: className, subject_name: subjectName, status, time, day, month, year, remark } = attendanceRecord
 
     return (
         <Modal
@@ -31,9 +53,12 @@ export default function ImagePreview({ isOpen, onClose, attendanceRecord }) {
                     <StatusChip variant={REMARK_VARIANT[remark] || 'neutral'}>{REMARK_LABEL[remark] || remark}</StatusChip>
                 </div>
 
+                {imageUrl && <img src={imageUrl} alt={`Capture of ${studentName}`} className="max-h-72 w-full rounded-lg border border-border object-contain" />}
+
                 <div className="text-sm">
+                    <Row icon={LuBookOpen} label="Subject" value={subjectName || '—'} />
                     <Row icon={LuGraduationCap} label="Class" value={className || '—'} />
-                    <Row icon={LuClock} label="Recorded at" value={`${time || '—'} · ${day}/${month}/${year}`} />
+                    <Row icon={LuClock} label="Recorded at" value={`${status === 1 ? time : '—'} · ${day}/${month}/${year}`} />
                 </div>
             </div>
         </Modal>

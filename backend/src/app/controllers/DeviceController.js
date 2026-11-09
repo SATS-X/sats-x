@@ -1,38 +1,8 @@
 import prisma from '../../config/db/index.js';
+import { toMinutes, toVietnamParts } from '../helpers/dates.js';
 
 const fail = (res, status, error, message) =>
     res.status(status).json({ success: false, error, message });
-
-const VN_FORMATTER = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-});
-
-/**
- * Trả về ngày/giờ theo múi giờ VN cho một thời điểm UTC bất kỳ — dùng
- * Intl.DateTimeFormat thay vì tự cộng/trừ 7 tiếng vào epoch, vì phép cộng thủ
- * công chỉ đúng khi input chưa có sẵn offset (dễ cộng nhầm lần hai nếu Date đã
- * được parse từ chuỗi ISO có "+07:00" sẵn trong đó).
- */
-const toVietnamParts = (date) => {
-    const parts = Object.fromEntries(VN_FORMATTER.formatToParts(date).map((p) => [p.type, p.value]));
-    return {
-        day: Number(parts.day),
-        month: Number(parts.month),
-        year: Number(parts.year),
-        time: `${parts.hour}:${parts.minute}`
-    };
-};
-
-const toMinutes = (hhmm) => {
-    const [h, m] = hhmm.split(':').map(Number);
-    return h * 60 + m;
-};
 
 /**
  * GET /api/device/schedule?day=&month=&year=
@@ -53,7 +23,7 @@ export const getDeviceSchedule = async (req, res) => {
         const year = Number.parseInt(req.query.year, 10) || today.year;
 
         const schedules = await prisma.schedule.findMany({
-            where: { day, month, year },
+            where: { day, month, year, status: { not: 'cancelled' } },
             include: {
                 subject: {
                     include: {
@@ -146,6 +116,7 @@ export const recordDeviceAttendance = async (req, res) => {
                 day,
                 month,
                 year,
+                status: 'scheduled',
                 subject: { classes: { some: { classId } } }
             },
             include: { subject: true }
@@ -179,35 +150,52 @@ export const recordDeviceAttendance = async (req, res) => {
             end_time: activeSchedule.endTime
         };
 
-        // Một sinh viên chỉ điểm danh một lần cho một môn trong một ngày — nhận
-        // diện lại (đi qua camera lần nữa) trả về bản ghi đã có, không tạo trùng.
-        const existing = await prisma.attendance.findFirst({
-            where: { studentId, subjectId, day, month, year }
-        });
+        // Một sinh viên chỉ điểm danh một lần cho một buổi học — nhận diện lại trả về
+        // bản ghi đã có. Khoá unique chặn cả trường hợp hai request đến cùng lúc.
+        const respondDuplicate = async () => {
+            const existing = await prisma.attendance.findUnique({
+                where: { studentId_scheduleId: { studentId, scheduleId: activeSchedule.id } }
+            });
 
-        if (existing) {
             return res.status(200).json({
                 success: true,
-                message: 'Student has already attended this subject today',
+                message: 'Student has already attended this session',
                 duplicate: true,
                 data: { student_id: existing.studentId, subject_id: existing.subjectId, remark: existing.remark, class_info: classInfo }
             });
+        };
+
+        const alreadyRecorded = await prisma.attendance.count({
+            where: { studentId, scheduleId: activeSchedule.id }
+        });
+
+        if (alreadyRecorded > 0) {
+            return respondDuplicate();
         }
 
-        const created = await prisma.attendance.create({
-            data: {
-                studentId,
-                subjectId,
-                time,
-                day,
-                month,
-                year,
-                dayOfWeek: activeSchedule.dayOfWeek,
-                status: 1,
-                remark,
-                imageKey: imageKey || null
+        let created;
+        try {
+            created = await prisma.attendance.create({
+                data: {
+                    studentId,
+                    subjectId,
+                    scheduleId: activeSchedule.id,
+                    time,
+                    day,
+                    month,
+                    year,
+                    dayOfWeek: activeSchedule.dayOfWeek,
+                    status: 1,
+                    remark,
+                    imageKey: imageKey || null
+                }
+            });
+        } catch (error) {
+            if (error.code === 'P2002') {
+                return respondDuplicate();
             }
-        });
+            throw error;
+        }
 
         return res.status(201).json({
             success: true,

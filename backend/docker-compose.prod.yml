@@ -40,8 +40,6 @@ services:
       # điểm danh đi. Giá trị phải trùng backend_service_token bên Terraform.
       SERVICE_TOKEN: ${SERVICE_TOKEN}
       WS_TICKET_SECRET: ${WS_TICKET_SECRET}
-    ports:
-      - '4000:4000'
 
   # Frontend đã build tĩnh (npm run build ở máy dev, scp dist/ sang EC2) — không
   # build node bên trong container vì t3.micro chỉ có ~900MB RAM, npm ci + vite
@@ -55,8 +53,26 @@ services:
     volumes:
       - ../frontend/dist:/usr/share/nginx/html:ro
       - ../frontend/deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # Lớp HTTPS duy nhất mở ra internet. Caddy tự xin và gia hạn chứng chỉ Let's Encrypt.
+  # Cookie refresh token cần Secure nên production bắt buộc phải có HTTPS.
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: attendance-caddy
+    restart: unless-stopped
+    depends_on:
+      - web
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    volumes:
+      - ../frontend/deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - attendance_caddy_data:/data
+      - attendance_caddy_config:/config
     ports:
       - '80:80'
+      - '443:443'
 
 volumes:
   attendance_pg_data:
+  attendance_caddy_data:
+  attendance_caddy_config:

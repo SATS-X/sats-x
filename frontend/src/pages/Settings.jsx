@@ -10,8 +10,8 @@ import { Button, Card, CardHeader, IconButton, PageHeader, Segmented, Textarea }
 
 const QUICK_PAYLOADS = {
     Ping: '{\n  "action": "ping"\n}',
-    listFaces: '{\n  "action": "listFaces",\n  "classId": "D22CQCI01-N"\n}',
-    getCollectionInfo: '{\n  "action": "getCollectionInfo",\n  "classId": "D22CQCI01-N"\n}'
+    listFaces: '{\n  "action": "listFaces",\n  "classId": "YOUR_CLASS_ID"\n}',
+    getCollectionInfo: '{\n  "action": "getCollectionInfo",\n  "classId": "YOUR_CLASS_ID"\n}'
 }
 
 const THEME_OPTIONS = [

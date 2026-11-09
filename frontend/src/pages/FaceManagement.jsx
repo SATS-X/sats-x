@@ -1,25 +1,26 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LuFingerprint, LuPlus, LuRefreshCw, LuShieldCheck, LuTrash2 } from 'react-icons/lu'
 import { useWebSocket } from '../contexts/WebSocketContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
-import { listFaces, deleteFaceAndImage, getCollectionInfo } from '../api/websocket/faceManagement'
-import { getStudentPhotoUrl } from '../lib/s3'
+import { listFaces, deleteFaceAndImage, getCollectionInfo, requestImageUrls } from '../api/websocket/faceManagement'
+import { getClasses } from '../api/class/getClasses'
+import { apiErrorMessage } from '../lib/errors'
+import { getStudentPhotoKey } from '../lib/s3'
 import AddFaceModal from '../components/FaceManagement/AddFaceModal'
-import { Avatar, Button, Card, EmptyState, IconButton, LoadingState, Modal, Notice, PageHeader, SearchInput, Segmented, StatusChip } from '../components/ui'
-
-const CLASS_COLLECTIONS = [
-    { value: 'D22CQCI01-N', label: 'D22CQCI01-N' },
-    { value: 'D22CQCI01-B', label: 'D22CQCI01-B' },
-    { value: 'D22CQVT01-N', label: 'D22CQVT01-N' }
-]
+import { Avatar, Button, Card, EmptyState, IconButton, LoadingState, Modal, Notice, PageHeader, SearchInput, Select, StatusChip } from '../components/ui'
 
 export default function FaceManagement() {
     const { t } = useLanguage()
-    const { sendMessage, subscribe, isConnected } = useWebSocket()
+    const ws = useWebSocket()
+    const { sendMessage, subscribe, isConnected } = ws
     const { showSuccess, showError, showInfo } = useToast()
+    const [searchParams] = useSearchParams()
 
-    const [selectedClassId, setSelectedClassId] = useState('D22CQCI01-N')
+    const [classes, setClasses] = useState([])
+    const [selectedClassId, setSelectedClassId] = useState(searchParams.get('class') || '')
+    const [photoUrls, setPhotoUrls] = useState({})
     const [faces, setFaces] = useState([])
     const [collectionInfo, setCollectionInfo] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -30,7 +31,34 @@ export default function FaceManagement() {
     const [selectedFaceToDelete, setSelectedFaceToDelete] = useState(null)
     const [isDeleting, setIsDeleting] = useState(false)
 
+    useEffect(() => {
+        getClasses()
+            .then((res) => {
+                const list = res?.data ?? []
+                setClasses(list)
+                setSelectedClassId((current) => current || list[0]?.class_id || '')
+            })
+            .catch((err) => showError(apiErrorMessage(err, 'Could not load classes'), 'Error'))
+    }, [showError])
+
+    // Bucket là private nên ảnh được hiển thị qua URL ký ngắn hạn.
+    useEffect(() => {
+        const keys = faces.map((face) => getStudentPhotoKey(selectedClassId, face.externalImageId || face.faceId))
+        if (keys.length === 0 || !isConnected) return undefined
+
+        let active = true
+        requestImageUrls(ws, keys)
+            .then((urls) => active && setPhotoUrls(urls))
+            .catch((err) => console.warn('Could not load face photos:', err.message))
+
+        return () => {
+            active = false
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [faces, selectedClassId, isConnected])
+
     const fetchClassFaces = (classId) => {
+        if (!classId) return
         if (!isConnected) {
             showInfo('Connecting to AWS Gateway...', 'WebSocket')
             return
@@ -106,7 +134,14 @@ export default function FaceManagement() {
             />
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <Segmented options={CLASS_COLLECTIONS} value={selectedClassId} onChange={setSelectedClassId} label="Select a class collection" />
+                <Select aria-label="Select a class collection" value={selectedClassId} onChange={(e) => setSelectedClassId(e.target.value)} className="md:w-80">
+                    {classes.length === 0 && <option value="">No classes yet</option>}
+                    {classes.map((c) => (
+                        <option key={c.class_id} value={c.class_id}>
+                            {c.class_id} — {c.class_name}
+                        </option>
+                    ))}
+                </Select>
                 <SearchInput
                     aria-label="Search faces"
                     value={searchTerm}
@@ -145,7 +180,7 @@ export default function FaceManagement() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredFaces.map((face) => {
                         const studentId = face.externalImageId || face.faceId
-                        const photoUrl = getStudentPhotoUrl(selectedClassId, studentId)
+                        const photoUrl = photoUrls[getStudentPhotoKey(selectedClassId, studentId)]
 
                         return (
                             <Card key={face.faceId} padded={false} className="overflow-hidden transition-colors hover:border-accent/35">

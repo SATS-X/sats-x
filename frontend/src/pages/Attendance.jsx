@@ -1,7 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LuCamera, LuDownload, LuEye, LuRefreshCw } from 'react-icons/lu'
 import { getAllAttendance } from '../api/attendance/getAttendance'
 import { getClasses } from '../api/class/getClasses'
+import { getManagedSubjects } from '../api/subject/getSubject'
+import { useAuth } from '../contexts/AuthContext'
+import { apiErrorMessage } from '../lib/errors'
 import { useWebSocket } from '../contexts/WebSocketContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
@@ -31,17 +35,25 @@ const REMARK_LABEL = { 'On Time': 'On time', Late: 'Late', Absent: 'Absent' }
 
 export default function Attendance() {
     const { t } = useLanguage()
+    const { user } = useAuth()
     const { showInfo, showSuccess, showError } = useToast()
     const { subscribe, sendMessage, isConnected } = useWebSocket()
     const [triggering, setTriggering] = useState(false)
 
     const [attendanceData, setAttendanceData] = useState([])
+    const [totalRecords, setTotalRecords] = useState(0)
     const [classesList, setClassesList] = useState([])
+    const [subjectsList, setSubjectsList] = useState([])
     const [loading, setLoading] = useState(true)
 
+    const [searchParams] = useSearchParams()
     const [searchTerm, setSearchTerm] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
     const [selectedClass, setSelectedClass] = useState('all')
+    const [selectedSubject, setSelectedSubject] = useState(searchParams.get('subject') || 'all')
     const [selectedRemark, setSelectedRemark] = useState('all')
+    const [fromDate, setFromDate] = useState(searchParams.get('date') || '')
+    const [toDate, setToDate] = useState(searchParams.get('date') || '')
 
     const [previewOpen, setPreviewOpen] = useState(false)
     const [selectedRecord, setSelectedRecord] = useState(null)
@@ -49,22 +61,64 @@ export default function Attendance() {
     const [currentPage, setCurrentPage] = useState(1)
     const pageSize = 12
 
-    const fetchAttendanceData = async () => {
+    const filterParams = useMemo(
+        () => ({
+            ...(debouncedSearch ? { q: debouncedSearch } : {}),
+            ...(selectedClass !== 'all' ? { class_id: selectedClass } : {}),
+            ...(selectedSubject !== 'all' ? { subject_id: selectedSubject } : {}),
+            ...(selectedRemark !== 'all' ? { remark: selectedRemark } : {}),
+            ...(fromDate ? { from: fromDate } : {}),
+            ...(toDate ? { to: toDate } : {})
+        }),
+        [debouncedSearch, selectedClass, selectedSubject, selectedRemark, fromDate, toDate]
+    )
+
+    // Chỉ áp dụng kết quả của lần gọi mới nhất, phòng phản hồi cũ về sau phản hồi mới.
+    const requestIdRef = useRef(0)
+
+    const fetchAttendanceData = useCallback(async () => {
+        requestIdRef.current += 1
+        const requestId = requestIdRef.current
         setLoading(true)
         try {
-            const [attRes, clsRes] = await Promise.allSettled([getAllAttendance(), getClasses()])
-            if (attRes.status === 'fulfilled' && attRes.value?.success) setAttendanceData(attRes.value.data)
-            if (clsRes.status === 'fulfilled' && clsRes.value?.success) setClassesList(clsRes.value.data)
+            const res = await getAllAttendance({ ...filterParams, page: currentPage, limit: pageSize })
+            if (requestId !== requestIdRef.current) return
+            setAttendanceData(res?.data ?? [])
+            setTotalRecords(res?.pagination?.total ?? 0)
         } catch (err) {
-            showError(err.message || 'Could not load attendance records', 'Error')
+            if (requestId === requestIdRef.current) showError(apiErrorMessage(err, 'Could not load attendance records'), 'Error')
         } finally {
-            setLoading(false)
+            if (requestId === requestIdRef.current) setLoading(false)
         }
-    }
+    }, [filterParams, currentPage, showError])
+
+    // setTimeout trong handleTriggerCapture cần gọi được bộ lọc mới nhất.
+    const fetchRef = useRef(fetchAttendanceData)
+    fetchRef.current = fetchAttendanceData
 
     useEffect(() => {
         fetchAttendanceData()
-    }, [])
+    }, [fetchAttendanceData])
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm.trim())
+            setCurrentPage(1)
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [searchTerm])
+
+    useEffect(() => {
+        Promise.allSettled([getClasses(), getManagedSubjects(user)]).then(([classesRes, subjectsRes]) => {
+            if (classesRes.status === 'fulfilled') setClassesList(classesRes.value?.data ?? [])
+            if (subjectsRes.status === 'fulfilled') setSubjectsList(subjectsRes.value?.data ?? [])
+        })
+    }, [user])
+
+    const updateFilter = (setter) => (e) => {
+        setter(e.target.value)
+        setCurrentPage(1)
+    }
 
     // Dọn subscription + timer đang chờ khi rời trang trước khi có phản hồi —
     // nếu không, closure cũ (showSuccess/showError/setTriggering của lần render
@@ -105,7 +159,7 @@ export default function Attendance() {
             setTriggering(false)
             if (data?.status === 'success') {
                 showSuccess(data.message || 'Capture command sent to device', 'Camera triggered')
-                setTimeout(fetchAttendanceData, 6000)
+                setTimeout(() => fetchRef.current(), 6000)
             } else {
                 showError(data?.message || 'Could not send command to device', 'Error')
             }
@@ -122,31 +176,27 @@ export default function Attendance() {
         }
     }
 
-    const filteredData = useMemo(() => {
-        return attendanceData.filter((item) => {
-            const search = searchTerm.toLowerCase()
-            const matchesSearch =
-                !searchTerm || item.student_name?.toLowerCase().includes(search) || item.student_id?.toLowerCase().includes(search)
-            const matchesClass = selectedClass === 'all' || item.class_names?.includes(selectedClass)
-            const matchesRemark = selectedRemark === 'all' || item.remark === selectedRemark
-            return matchesSearch && matchesClass && matchesRemark
-        })
-    }, [attendanceData, searchTerm, selectedClass, selectedRemark])
+    const totalPages = Math.ceil(totalRecords / pageSize) || 1
+    const paginatedData = attendanceData
 
-    const totalPages = Math.ceil(filteredData.length / pageSize) || 1
-    const paginatedData = useMemo(() => {
-        const start = (currentPage - 1) * pageSize
-        return filteredData.slice(start, start + pageSize)
-    }, [filteredData, currentPage])
+    const exportCSV = async () => {
+        let allRecords
+        try {
+            const res = await getAllAttendance(filterParams)
+            allRecords = res?.data ?? []
+        } catch (err) {
+            showError(apiErrorMessage(err, 'Could not export attendance records'), 'Error')
+            return
+        }
 
-    const exportCSV = () => {
-        const headers = ['Student ID', 'Full name', 'Class', 'Date', 'Time', 'Status']
-        const rows = filteredData.map((r) => [
+        const headers = ['Student ID', 'Full name', 'Class', 'Subject', 'Date', 'Time', 'Status']
+        const rows = allRecords.map((r) => [
             r.student_id || '',
             r.student_name || '',
             r.class_names || '',
+            r.subject_name || '',
             `${r.day}/${r.month}/${r.year}`,
-            r.time || '',
+            r.status === 1 ? r.time : '',
             REMARK_LABEL[r.remark] || r.remark || ''
         ])
         const csvContent = 'data:text/csv;charset=utf-8,﻿' + [headers, ...rows].map((e) => e.join(',')).join('\n')
@@ -162,7 +212,7 @@ export default function Attendance() {
     return (
         <div className="space-y-6">
             <PageHeader
-                eyebrow={`Records · ${filteredData.length}`}
+                eyebrow={`Records · ${totalRecords}`}
                 title={t('attendanceManagement')}
                 description={t('dailyAttendanceTracking')}
                 actions={
@@ -189,47 +239,45 @@ export default function Attendance() {
                 }
             />
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-                <SearchInput
-                    aria-label="Search attendance"
-                    value={searchTerm}
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value)
-                        setCurrentPage(1)
-                    }}
-                    placeholder="Search by name or student ID..."
-                    className="flex-1"
-                />
-                <Select
-                    aria-label="Filter by class"
-                    value={selectedClass}
-                    onChange={(e) => {
-                        setSelectedClass(e.target.value)
-                        setCurrentPage(1)
-                    }}
-                    className="sm:w-48"
-                >
-                    <option value="all">All classes</option>
-                    {classesList.map((c) => (
-                        <option key={c.class_id} value={c.class_id}>
-                            {c.class_id}
-                        </option>
-                    ))}
-                </Select>
-                <Select
-                    aria-label="Filter by status"
-                    value={selectedRemark}
-                    onChange={(e) => {
-                        setSelectedRemark(e.target.value)
-                        setCurrentPage(1)
-                    }}
-                    className="sm:w-40"
-                >
-                    <option value="all">All statuses</option>
-                    <option value="On Time">On time</option>
-                    <option value="Late">Late</option>
-                    <option value="Absent">Absent</option>
-                </Select>
+            <div className="space-y-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <SearchInput
+                        aria-label="Search attendance"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search by name or student ID..."
+                        className="flex-1"
+                    />
+                    <div className="flex items-center gap-2">
+                        <input aria-label="From date" type="date" value={fromDate} onChange={updateFilter(setFromDate)} className="control font-data h-9 px-2.5 text-xs sm:w-[140px]" />
+                        <span className="text-xs text-text-tertiary">to</span>
+                        <input aria-label="To date" type="date" value={toDate} min={fromDate || undefined} onChange={updateFilter(setToDate)} className="control font-data h-9 px-2.5 text-xs sm:w-[140px]" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <Select aria-label="Filter by class" value={selectedClass} onChange={updateFilter(setSelectedClass)}>
+                        <option value="all">All classes</option>
+                        {classesList.map((c) => (
+                            <option key={c.class_id} value={c.class_id}>
+                                {c.class_id}
+                            </option>
+                        ))}
+                    </Select>
+                    <Select aria-label="Filter by subject" value={selectedSubject} onChange={updateFilter(setSelectedSubject)}>
+                        <option value="all">All subjects</option>
+                        {subjectsList.map((s) => (
+                            <option key={s.subject_id} value={s.subject_id}>
+                                {s.subject_id} — {s.name}
+                            </option>
+                        ))}
+                    </Select>
+                    <Select aria-label="Filter by status" value={selectedRemark} onChange={updateFilter(setSelectedRemark)}>
+                        <option value="all">All statuses</option>
+                        <option value="On Time">On time</option>
+                        <option value="Late">Late</option>
+                        <option value="Absent">Absent</option>
+                    </Select>
+                </div>
             </div>
 
             {loading ? (
@@ -262,7 +310,7 @@ export default function Attendance() {
                                         </div>
                                     </TD>
                                     <TD>{record.class_names ? <Badge className="font-data">{record.class_names}</Badge> : '—'}</TD>
-                                    <TD className="font-data">{record.time || '—'}</TD>
+                                    <TD className="font-data">{record.status === 1 ? record.time : '—'}</TD>
                                     <TD className="font-data text-text-tertiary">
                                         {record.day}/{record.month}/{record.year}
                                     </TD>
@@ -289,8 +337,8 @@ export default function Attendance() {
                     <div className="flex flex-col gap-3 text-xs text-text-tertiary sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             Showing <span className="font-data font-medium text-text">{(currentPage - 1) * pageSize + 1}</span> to{' '}
-                            <span className="font-data font-medium text-text">{Math.min(currentPage * pageSize, filteredData.length)}</span> of{' '}
-                            <span className="font-data font-medium text-text">{filteredData.length}</span> records
+                            <span className="font-data font-medium text-text">{Math.min(currentPage * pageSize, totalRecords)}</span> of{' '}
+                            <span className="font-data font-medium text-text">{totalRecords}</span> records
                         </div>
                         <div className="flex items-center gap-2">
                             <Button variant="secondary" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>

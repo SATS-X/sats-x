@@ -52,17 +52,17 @@ resource "aws_security_group" "this" {
   }
 
   ingress {
-    description = "Backend API"
-    from_port   = var.app_port
-    to_port     = var.app_port
+    description = "HTTP for ACME challenge and redirect to HTTPS"
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    description = "Frontend (nginx)"
-    from_port   = 80
-    to_port     = 80
+    description = "HTTPS (Caddy)"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

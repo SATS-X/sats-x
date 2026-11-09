@@ -40,6 +40,11 @@ output "api_gateway_id" {
   value       = module.websocket_api.api_id
 }
 
+output "backend_site_address" {
+  description = "HTTPS hostname of the backend host. Use as SITE_ADDRESS in backend/.env."
+  value       = module.ec2_backend.site_address
+}
+
 output "backend_public_ip" {
   description = "IP tĩnh của EC2 backend."
   value       = module.ec2_backend.public_ip

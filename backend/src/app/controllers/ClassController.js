@@ -80,6 +80,11 @@ export const createClass = async (req, res) => {
             return fail(res, 400, 'ValidationError', 'Missing class_id or name');
         }
 
+        // Mã lớp trở thành tên Rekognition collection nên chỉ được dùng các ký tự này.
+        if (typeof class_id !== 'string' || !/^[A-Za-z0-9._-]{1,32}$/.test(class_id)) {
+            return fail(res, 400, 'ValidationError', 'Class ID may only contain letters, numbers, dots, underscores, and hyphens');
+        }
+
         const created = await prisma.class.create({
             data: { classId: class_id, name }
         });

@@ -6,6 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import prisma, { testConnection } from './config/db/index.js';
 import swaggerDocument from './config/swagger.js';
 import routes from './routes/index.js';
+import { startSessionCloser } from './app/services/sessionCloser.js';
 
 dotenv.config();
 
@@ -45,7 +46,9 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
 if (isProduction) {
-    app.set('trust proxy', 1);
+    // Production đi qua hai proxy: Caddy (HTTPS) rồi nginx. Sai số này thì giới hạn
+    // đăng nhập sẽ tính mọi người dùng là một địa chỉ IP.
+    app.set('trust proxy', 2);
 }
 
 routes(app);
@@ -97,6 +100,7 @@ app.use((err, req, res, next) => {
 });
 
 await testConnection();
+startSessionCloser();
 
 app.listen(port, () => {
     console.log(`Attendance System API is running on port ${port}`);

@@ -17,6 +17,11 @@ export const getAllStudentsBySubjectId = async (subjectId) => {
     return res.data
 }
 
+export const updateStudent = async (studentId, payload) => {
+    const res = await client.put(`/api/student/${studentId}`, payload)
+    return res.data
+}
+
 export default {
     getAllStudents,
     getAllStudentsByClassId,

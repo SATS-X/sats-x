@@ -297,6 +297,26 @@ When edge devices interact with the backend via AWS Lambda handlers (`schedule`,
 | `POST` | `/api/auth/change-password`| Authenticated | Update password and invalidate all other active sessions |
 | `POST` | `/api/auth/register` | **Admin Only** | Provision new faculty account |
 
+### Academic planning endpoints
+
+All routes require a signed-in teacher. Teachers can change only their own subjects and their sessions; admins can change all of them.
+
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `GET`, `POST` | `/api/term` | List or create academic terms |
+| `PUT`, `DELETE` | `/api/term/:id` | Update or delete a term |
+| `POST` | `/api/subject` | Create a subject and assign classes |
+| `PUT`, `DELETE` | `/api/subject/:subject_id` | Update or delete a subject |
+| `POST` | `/api/subject/:subject_id/students` | Add students outside the assigned classes |
+| `DELETE` | `/api/subject/:subject_id/students/:student_id` | Remove an added student |
+| `GET` | `/api/schedule?from=&to=&subject_id=` | List sessions |
+| `POST` | `/api/schedule` | Create one session (`date`) or a weekly series (`weekdays` with `term_id` or a date range) |
+| `PUT` | `/api/schedule/:id` | Change a session, or cancel or restore it |
+| `DELETE` | `/api/schedule/:id[?scope=series]` | Delete a session, or it and the following sessions in its series |
+| `GET` | `/api/attendance?q=&class_id=&subject_id=&remark=&from=&to=&page=&limit=` | Search and paginate attendance |
+
+After a session ends, students on its roster with no record are marked absent. If nobody checked in, the session is flagged `no_attendance` instead, because the device was most likely offline.
+
 ### 2. Academic & Administrative Endpoints
 
 All endpoints below require a valid `Authorization: Bearer <accessToken>` header. Pagination is supported via optional `?page=1&limit=20` query parameters.

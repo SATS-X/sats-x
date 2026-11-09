@@ -10,6 +10,7 @@ import {
     WS_INLINE_IMAGE_MAX_BASE64
 } from '../../api/websocket/faceManagement'
 import { createStudent } from '../../api/student/createStudent'
+import { getClasses } from '../../api/class/getClasses'
 import { compressImage, prepareImageForUpload } from '../../lib/image'
 import { Button, Field, Input, Modal, Select, Spinner } from '../ui'
 
@@ -33,7 +34,7 @@ const STAGE_LABEL = {
 export default function AddFaceModal({
     isOpen,
     onClose,
-    defaultClassId = 'D22CQCI01-N',
+    defaultClassId = '',
     onAdded,
     withStudentRecord = false
 }) {
@@ -41,6 +42,7 @@ export default function AddFaceModal({
     const { isConnected } = ws
     const { showSuccess, showError, showInfo } = useToast()
 
+    const [classes, setClasses] = useState([])
     const [classId, setClassId] = useState(defaultClassId)
     const [studentId, setStudentId] = useState('')
     const [fullName, setFullName] = useState('')
@@ -64,7 +66,22 @@ export default function AddFaceModal({
     const isSubmitting = stage !== null
 
     useEffect(() => {
-        if (isOpen) setClassId(defaultClassId)
+        if (!isOpen) return undefined
+
+        let active = true
+        setClassId(defaultClassId)
+        getClasses()
+            .then((res) => {
+                if (!active) return
+                const list = res?.data ?? []
+                setClasses(list)
+                setClassId((current) => current || list[0]?.class_id || '')
+            })
+            .catch((err) => console.warn('Failed to load classes:', err))
+
+        return () => {
+            active = false
+        }
     }, [isOpen, defaultClassId])
 
     // Sau khi modal unmount giữa chừng (đóng tay, điều hướng trang...) thì các
@@ -263,7 +280,7 @@ export default function AddFaceModal({
                     <Button variant="secondary" onClick={handleClose} disabled={isSubmitting}>
                         Cancel
                     </Button>
-                    <Button type="submit" form="add-face-form" loading={isSubmitting} disabled={!imageFile || !studentId}>
+                    <Button type="submit" form="add-face-form" loading={isSubmitting} disabled={!imageFile || !studentId || !classId}>
                         {withStudentRecord ? 'Add student and index' : 'Save and index'}
                     </Button>
                 </>
@@ -271,10 +288,13 @@ export default function AddFaceModal({
         >
             <form id="add-face-form" onSubmit={handleSubmit} className="space-y-4">
                 <Field label="Class / collection">
-                    <Select value={classId} onChange={(e) => setClassId(e.target.value)} disabled={isSubmitting}>
-                        <option value="D22CQCI01-N">D22CQCI01-N</option>
-                        <option value="D22CQCI01-B">D22CQCI01-B</option>
-                        <option value="D22CQVT01-N">D22CQVT01-N</option>
+                    <Select required value={classId} onChange={(e) => setClassId(e.target.value)} disabled={isSubmitting} className="h-10">
+                        {classes.length === 0 && <option value="">Create a class first</option>}
+                        {classes.map((c) => (
+                            <option key={c.class_id} value={c.class_id}>
+                                {c.class_id} — {c.class_name}
+                            </option>
+                        ))}
                     </Select>
                 </Field>
 

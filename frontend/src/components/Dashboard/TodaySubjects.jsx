@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { LuArrowRight, LuClock, LuMapPin } from 'react-icons/lu'
 import { getSchedule } from '../../api/schedule/getSchedule'
 import { useAuth } from '../../contexts/AuthContext'
+import { todayISO } from '../../lib/date'
 import { Badge, Button, Card, CardHeader, EmptyState } from '../ui'
 
 export default function TodaySubjects() {
@@ -12,18 +13,15 @@ export default function TodaySubjects() {
 
     useEffect(() => {
         let isMounted = true
-        getSchedule()
+        const today = todayISO()
+        getSchedule({ from: today, to: today })
             .then((res) => {
                 if (!isMounted || !res?.success) return
-                const now = new Date()
-                const today = (res.data ?? []).filter(
-                    (s) =>
-                        s.day === now.getDate() &&
-                        s.month === now.getMonth() + 1 &&
-                        s.year === now.getFullYear() &&
-                        (!user?.teacher_id || s.teacher_id === user.teacher_id)
+                setSchedules(
+                    (res.data ?? [])
+                        .filter((s) => s.status !== 'cancelled' && (!user?.teacher_id || s.teacher_id === user.teacher_id))
+                        .sort((a, b) => a.start_time.localeCompare(b.start_time))
                 )
-                setSchedules(today)
             })
             .catch((err) => console.warn('Failed to load today schedule:', err))
             .finally(() => isMounted && setIsLoading(false))
@@ -72,7 +70,7 @@ export default function TodaySubjects() {
                                     </span>
                                 </div>
                             </div>
-                            <Button as={Link} to="/attendance" variant="secondary" size="sm">
+                            <Button as={Link} to={`/attendance?subject=${encodeURIComponent(s.subject_id)}&date=${s.date}`} variant="secondary" size="sm">
                                 Attendance
                             </Button>
                         </div>

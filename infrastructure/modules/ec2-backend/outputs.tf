@@ -1,11 +1,22 @@
+locals {
+  # Let's Encrypt không cấp chứng chỉ cho địa chỉ IP, còn sslip.io phân giải
+  # "52-220-6-142.sslip.io" về đúng IP đó mà không cần mua tên miền.
+  site_address = "${replace(aws_eip.this.public_ip, ".", "-")}.sslip.io"
+}
+
 output "public_ip" {
   description = "IP tĩnh của instance (Elastic IP)."
   value       = aws_eip.this.public_ip
 }
 
 output "backend_url" {
-  description = "URL để Lambda / frontend gọi vào backend."
-  value       = "http://${aws_eip.this.public_ip}:${var.app_port}"
+  description = "URL HTTPS để Lambda / frontend gọi vào backend."
+  value       = "https://${local.site_address}"
+}
+
+output "site_address" {
+  description = "Tên miền miễn phí trỏ về Elastic IP (sslip.io); dùng làm SITE_ADDRESS cho Caddy."
+  value       = local.site_address
 }
 
 output "ssh_command" {
