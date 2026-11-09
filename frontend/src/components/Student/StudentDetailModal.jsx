@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import { HiOutlineMail, HiOutlinePhone, HiOutlineAcademicCap, HiOutlineBookOpen } from 'react-icons/hi'
+import { LuBookOpen, LuGraduationCap, LuMail, LuPhone } from 'react-icons/lu'
 import { Avatar, Badge, Button, Modal, StatusChip } from '../ui'
 
 export default function StudentDetailModal({ isOpen, onClose, student }) {
@@ -18,59 +18,55 @@ export default function StudentDetailModal({ isOpen, onClose, student }) {
                 </Button>
             }
         >
-            <div className="space-y-6">
-                <div className="flex items-center gap-4 rounded-card border border-border bg-surface-sunken p-4">
+            <div className="space-y-4">
+                <div className="flex items-center gap-3">
                     <Avatar name={student.name} size="lg" />
-                    <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                            <h3 className="truncate text-base font-semibold text-text">{student.name}</h3>
-                            <StatusChip variant={isActive ? 'present' : 'neutral'}>{isActive ? 'Active' : 'Inactive'}</StatusChip>
-                        </div>
-                        <p className="font-data text-xs text-text-tertiary">MSSV: {student.id}</p>
+                    <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-base font-semibold tracking-[-0.02em] text-text">{student.name}</h3>
+                        <p className="font-data text-xs text-text-tertiary">{student.id}</p>
                     </div>
+                    <StatusChip variant={isActive ? 'present' : 'neutral'}>{isActive ? 'Active' : 'Inactive'}</StatusChip>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <DetailField icon={HiOutlineAcademicCap} label="Class" value={student.grade || '—'} mono />
-                    <DetailField icon={HiOutlineMail} label="Email" value={student.email || '—'} />
-                    <DetailField icon={HiOutlinePhone} label="Phone number" value={student.phone || '—'} mono />
+                <div className="text-sm">
+                    <DetailRow icon={LuGraduationCap} label="Class" value={student.grade || '—'} mono />
+                    <DetailRow icon={LuMail} label="Email" value={student.email || '—'} />
+                    <DetailRow icon={LuPhone} label="Phone number" value={student.phone || '—'} mono />
                 </div>
 
-                <div className="space-y-2">
-                    <h4 className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
-                        <HiOutlineBookOpen className="h-4 w-4" />
+                <div className="space-y-2 border-t border-border pt-4">
+                    <h4 className="flex items-center gap-1.5 text-xs text-text-tertiary">
+                        <LuBookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                         Enrolled subjects
                     </h4>
-                    <div className="rounded-card border border-border bg-surface-sunken p-3">
-                        {student.subjects && student.subjects !== '—' ? (
-                            <div className="flex flex-wrap gap-1.5">
-                                {student.subjects.split(',').map((subj) => (
-                                    <Badge key={subj}>{subj.trim()}</Badge>
-                                ))}
-                            </div>
-                        ) : (
-                            <span className="text-xs text-text-tertiary">No enrolled subjects</span>
-                        )}
-                    </div>
+                    {student.subjects && student.subjects !== '—' ? (
+                        <div className="flex flex-wrap gap-1.5">
+                            {student.subjects.split(',').map((subj) => (
+                                <Badge key={subj}>{subj.trim()}</Badge>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-text-tertiary">No enrolled subjects</p>
+                    )}
                 </div>
             </div>
         </Modal>
     )
 }
 
-function DetailField({ icon: Icon, label, value, mono }) {
+function DetailRow({ icon: Icon, label, value, mono }) {
     return (
-        <div className="space-y-1 rounded-card border border-border bg-surface-sunken p-3">
-            <span className="flex items-center gap-1.5 text-xs font-medium text-text-tertiary">
-                <Icon className="h-4 w-4" />
+        <div className="flex items-center justify-between gap-4 border-t border-border py-2.5">
+            <span className="flex shrink-0 items-center gap-1.5 text-text-tertiary">
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                 {label}
             </span>
-            <div className={`truncate text-sm font-medium text-text ${mono ? 'font-data' : ''}`}>{value}</div>
+            <span className={`truncate font-medium text-text ${mono ? 'font-data' : ''}`}>{value}</span>
         </div>
     )
 }
 
-DetailField.propTypes = {
+DetailRow.propTypes = {
     icon: PropTypes.elementType.isRequired,
     label: PropTypes.string.isRequired,
     value: PropTypes.node,

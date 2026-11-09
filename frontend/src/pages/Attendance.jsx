@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { HiOutlineDownload, HiOutlineRefresh, HiOutlineEye, HiOutlineCamera } from 'react-icons/hi'
+import { LuCamera, LuDownload, LuEye, LuRefreshCw } from 'react-icons/lu'
 import { getAllAttendance } from '../api/attendance/getAttendance'
 import { getClasses } from '../api/class/getClasses'
 import { useWebSocket } from '../contexts/WebSocketContext'
@@ -10,11 +10,13 @@ import {
     Avatar,
     Badge,
     Button,
+    Card,
     EmptyState,
+    IconButton,
+    LoadingState,
     PageHeader,
     SearchInput,
     Select,
-    Spinner,
     StatusChip,
     Table,
     TBody,
@@ -160,17 +162,13 @@ export default function Attendance() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title={
-                    <span className="inline-flex items-center gap-2.5">
-                        {t('attendanceManagement')}
-                        {isConnected && <Badge className="text-present">Live IoT Stream</Badge>}
-                    </span>
-                }
+                eyebrow={`Records · ${filteredData.length}`}
+                title={t('attendanceManagement')}
                 description={t('dailyAttendanceTracking')}
                 actions={
                     <>
                         <Button variant="secondary" size="sm" onClick={fetchAttendanceData}>
-                            <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                            <LuRefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} aria-hidden="true" />
                             Refresh
                         </Button>
                         <Button
@@ -180,32 +178,36 @@ export default function Attendance() {
                             onClick={handleTriggerCapture}
                             title={isConnected ? undefined : 'WebSocket is not connected to AWS Gateway'}
                         >
-                            <HiOutlineCamera className={triggering ? 'h-4 w-4 animate-pulse' : 'h-4 w-4'} />
+                            <LuCamera className={triggering ? 'h-3.5 w-3.5 animate-pulse' : 'h-3.5 w-3.5'} aria-hidden="true" />
                             {triggering ? 'Sending command...' : 'Capture now'}
                         </Button>
                         <Button size="sm" onClick={exportCSV}>
-                            <HiOutlineDownload className="h-4 w-4" />
+                            <LuDownload className="h-3.5 w-3.5" aria-hidden="true" />
                             Export CSV
                         </Button>
                     </>
                 }
             />
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="flex flex-col gap-2 sm:flex-row">
                 <SearchInput
+                    aria-label="Search attendance"
                     value={searchTerm}
                     onChange={(e) => {
                         setSearchTerm(e.target.value)
                         setCurrentPage(1)
                     }}
                     placeholder="Search by name or student ID..."
+                    className="flex-1"
                 />
                 <Select
+                    aria-label="Filter by class"
                     value={selectedClass}
                     onChange={(e) => {
                         setSelectedClass(e.target.value)
                         setCurrentPage(1)
                     }}
+                    className="sm:w-48"
                 >
                     <option value="all">All classes</option>
                     {classesList.map((c) => (
@@ -215,11 +217,13 @@ export default function Attendance() {
                     ))}
                 </Select>
                 <Select
+                    aria-label="Filter by status"
                     value={selectedRemark}
                     onChange={(e) => {
                         setSelectedRemark(e.target.value)
                         setCurrentPage(1)
                     }}
+                    className="sm:w-40"
                 >
                     <option value="all">All statuses</option>
                     <option value="On Time">On time</option>
@@ -229,12 +233,11 @@ export default function Attendance() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
-                    <Spinner size="sm" />
-                    Loading attendance records...
-                </div>
+                <LoadingState label="Loading attendance records..." />
             ) : paginatedData.length === 0 ? (
-                <EmptyState title="No matching attendance records" />
+                <Card padded={false}>
+                    <EmptyState title="No matching attendance records" description="Try a different name, class, or status." />
+                </Card>
             ) : (
                 <>
                     <Table>
@@ -254,30 +257,28 @@ export default function Attendance() {
                                             <Avatar name={record.student_name} size="sm" />
                                             <div className="min-w-0">
                                                 <div className="truncate font-medium text-text">{record.student_name}</div>
-                                                <div className="font-data text-xs text-text-tertiary">{record.student_id}</div>
+                                                <div className="font-data text-[11px] text-text-tertiary">{record.student_id}</div>
                                             </div>
                                         </div>
                                     </TD>
                                     <TD>{record.class_names ? <Badge className="font-data">{record.class_names}</Badge> : '—'}</TD>
                                     <TD className="font-data">{record.time || '—'}</TD>
-                                    <TD className="font-data text-text-tertiary">{record.day}/{record.month}/{record.year}</TD>
+                                    <TD className="font-data text-text-tertiary">
+                                        {record.day}/{record.month}/{record.year}
+                                    </TD>
                                     <TD>
-                                        <StatusChip variant={REMARK_VARIANT[record.remark] || 'neutral'}>
-                                            {REMARK_LABEL[record.remark] || record.remark}
-                                        </StatusChip>
+                                        <StatusChip variant={REMARK_VARIANT[record.remark] || 'neutral'}>{REMARK_LABEL[record.remark] || record.remark}</StatusChip>
                                     </TD>
                                     <TD>
                                         <div className="flex justify-end">
-                                            <button
+                                            <IconButton
+                                                icon={LuEye}
+                                                label={`View details for ${record.student_name}`}
                                                 onClick={() => {
                                                     setSelectedRecord(record)
                                                     setPreviewOpen(true)
                                                 }}
-                                                className="inline-flex items-center gap-1 rounded-card px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10"
-                                            >
-                                                <HiOutlineEye className="h-3.5 w-3.5" />
-                                                Xem
-                                            </button>
+                                            />
                                         </div>
                                     </TD>
                                 </TR>
@@ -285,26 +286,21 @@ export default function Attendance() {
                         </TBody>
                     </Table>
 
-                    <div className="flex items-center justify-between text-xs text-text-secondary">
+                    <div className="flex flex-col gap-3 text-xs text-text-tertiary sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            Showing <span className="font-medium text-text">{(currentPage - 1) * pageSize + 1}</span> to{' '}
-                            <span className="font-medium text-text">{Math.min(currentPage * pageSize, filteredData.length)}</span> of{' '}
-                            <span className="font-medium text-text">{filteredData.length}</span> records
+                            Showing <span className="font-data font-medium text-text">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                            <span className="font-data font-medium text-text">{Math.min(currentPage * pageSize, filteredData.length)}</span> of{' '}
+                            <span className="font-data font-medium text-text">{filteredData.length}</span> records
                         </div>
                         <div className="flex items-center gap-2">
                             <Button variant="secondary" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
-                                Previous page
+                                Previous
                             </Button>
                             <span className="font-data px-2">
                                 {currentPage} / {totalPages}
                             </span>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                disabled={currentPage >= totalPages}
-                                onClick={() => setCurrentPage((p) => p + 1)}
-                            >
-                                Trang sau
+                            <Button variant="secondary" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+                                Next
                             </Button>
                         </div>
                     </div>

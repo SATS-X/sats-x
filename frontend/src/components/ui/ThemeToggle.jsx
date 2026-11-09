@@ -1,4 +1,4 @@
-import { HiOutlineMoon, HiOutlineSun } from 'react-icons/hi'
+import { LuMoon, LuSun } from 'react-icons/lu'
 import { useTheme } from '../../contexts/ThemeContext'
 
 const ThemeToggle = () => {
@@ -11,9 +11,9 @@ const ThemeToggle = () => {
             onClick={toggleTheme}
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
             title={isDark ? 'Light theme' : 'Dark theme'}
-            className="flex h-9 w-9 items-center justify-center rounded-card text-text-secondary transition-colors hover:bg-surface-hover hover:text-text"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-surface text-text-secondary shadow-sm transition-colors hover:bg-surface-hover hover:text-text"
         >
-            {isDark ? <HiOutlineSun className="h-[18px] w-[18px]" /> : <HiOutlineMoon className="h-[18px] w-[18px]" />}
+            {isDark ? <LuSun className="h-4 w-4" /> : <LuMoon className="h-4 w-4" />}
         </button>
     )
 }

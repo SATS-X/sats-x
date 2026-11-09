@@ -1,23 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { HiOutlineClock, HiOutlineLocationMarker, HiOutlineRefresh, HiOutlineArrowRight } from 'react-icons/hi'
+import { LuArrowRight, LuMapPin, LuRefreshCw, LuUser } from 'react-icons/lu'
 import { getSchedule } from '../api/schedule/getSchedule'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
-import classNames from 'classnames'
-import PropTypes from 'prop-types'
-import { Badge, Button, EmptyState, PageHeader, Spinner } from '../components/ui'
+import { Badge, Button, Card, EmptyState, LoadingState, PageHeader, Segmented } from '../components/ui'
 
-const DAYS = [
-    { key: 'Monday', label: 'Monday' },
-    { key: 'Tuesday', label: 'Tuesday' },
-    { key: 'Wednesday', label: 'Wednesday' },
-    { key: 'Thursday', label: 'Thursday' },
-    { key: 'Friday', label: 'Friday' },
-    { key: 'Saturday', label: 'Saturday' }
-]
-
-const dayLabel = (key) => DAYS.find((d) => d.key === key)?.label || key
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DAY_OPTIONS = [{ value: 'all', label: 'All days' }, ...DAYS.map((day) => ({ value: day, label: day }))]
 
 export default function Schedule() {
     const { t } = useLanguage()
@@ -48,94 +38,66 @@ export default function Schedule() {
     return (
         <div className="space-y-6">
             <PageHeader
+                eyebrow={`Sessions · ${filteredSchedule.length}`}
                 title={t('weeklySchedule')}
-                description="Teaching sessions and attendance windows by room"
+                description="Teaching sessions and attendance windows by room."
                 actions={
                     <Button variant="secondary" size="sm" onClick={fetchScheduleData}>
-                        <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                        <LuRefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} aria-hidden="true" />
                         Refresh
                     </Button>
                 }
             />
 
-            <div className="flex flex-wrap gap-2 rounded-card border border-border bg-surface p-2">
-                <DayPill active={selectedDay === 'all'} onClick={() => setSelectedDay('all')}>
-                    All days
-                </DayPill>
-                {DAYS.map((d) => (
-                    <DayPill key={d.key} active={selectedDay === d.key} onClick={() => setSelectedDay(d.key)}>
-                        {d.label}
-                    </DayPill>
-                ))}
-            </div>
+            <Segmented options={DAY_OPTIONS} value={selectedDay} onChange={setSelectedDay} label="Filter by day" />
 
             {loading ? (
-                <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
-                    <Spinner size="sm" />
-                    Loading schedule...
-                </div>
+                <LoadingState label="Loading schedule..." />
             ) : filteredSchedule.length === 0 ? (
-                <EmptyState title="No sessions on the selected day" />
+                <Card padded={false}>
+                    <EmptyState title="No sessions on the selected day" description="Choose another day to see its sessions." />
+                </Card>
             ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2.5">
                     {filteredSchedule.map((item) => (
-                        <div
-                            key={`${item.subject_id}-${item.day}-${item.start_time}`}
-                            className="flex flex-col justify-between rounded-card border border-border bg-surface p-5"
-                        >
-                            <div className="space-y-3">
-                                <Badge>{dayLabel(item.day_of_week)}</Badge>
-
-                                <div>
-                                    <h3 className="line-clamp-1 text-base font-semibold text-text">{item.subject_name}</h3>
-                                    <p className="font-data mt-0.5 text-xs text-text-tertiary">{item.subject_id}</p>
+                        <Card key={`${item.subject_id}-${item.day}-${item.start_time}`} padded={false} className="transition-colors hover:border-accent/35">
+                            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-5">
+                                <div className="font-data shrink-0 text-sm font-semibold text-text sm:w-[116px]">
+                                    {item.start_time}
+                                    <span className="font-normal text-text-tertiary"> – {item.end_time}</span>
                                 </div>
 
-                                <div className="space-y-2 rounded-card border border-border bg-surface-sunken p-3 text-xs">
-                                    <div className="font-data flex items-center gap-2 text-text-secondary">
-                                        <HiOutlineClock className="h-4 w-4 shrink-0 text-text-tertiary" />
-                                        {item.start_time} - {item.end_time}
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-baseline gap-x-2">
+                                        <h3 className="truncate text-sm font-semibold text-text">{item.subject_name}</h3>
+                                        <span className="font-data text-[11px] text-text-tertiary">{item.subject_id}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-text-secondary">
-                                        <HiOutlineLocationMarker className="h-4 w-4 shrink-0 text-text-tertiary" />
-                                        {item.room}
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
+                                        <span className="flex items-center gap-1">
+                                            <LuMapPin className="h-3 w-3" aria-hidden="true" />
+                                            {item.room}
+                                        </span>
+                                        {item.teacher_name && (
+                                            <span className="flex items-center gap-1">
+                                                <LuUser className="h-3 w-3" aria-hidden="true" />
+                                                {item.teacher_name}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                                <span className="font-data text-[11px] text-text-tertiary">{item.teacher_name}</span>
-                                <Link to="/attendance">
-                                    <Button size="sm">
+                                <div className="flex shrink-0 items-center gap-3">
+                                    <Badge>{item.day_of_week}</Badge>
+                                    <Button as={Link} to="/attendance" variant="secondary" size="sm">
                                         Open classroom
-                                        <HiOutlineArrowRight className="h-3.5 w-3.5" />
+                                        <LuArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                                     </Button>
-                                </Link>
+                                </div>
                             </div>
-                        </div>
+                        </Card>
                     ))}
                 </div>
             )}
         </div>
     )
-}
-
-function DayPill({ active, onClick, children }) {
-    return (
-        <button
-            onClick={onClick}
-            className={classNames(
-                'rounded-card px-3.5 py-2 text-xs font-medium transition-colors',
-                active ? 'bg-accent text-accent-foreground' : 'text-text-secondary hover:bg-surface-hover hover:text-text'
-            )}
-        >
-            {children}
-        </button>
-    )
-}
-
-DayPill.propTypes = {
-    active: PropTypes.bool,
-    onClick: PropTypes.func,
-    children: PropTypes.node
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { HiOutlineClock, HiOutlineLocationMarker, HiArrowRight } from 'react-icons/hi'
+import { LuArrowRight, LuClock, LuMapPin } from 'react-icons/lu'
 import { getSchedule } from '../../api/schedule/getSchedule'
 import { useAuth } from '../../contexts/AuthContext'
-import { Badge, Button, Card, EmptyState } from '../ui'
+import { Badge, Button, Card, CardHeader, EmptyState } from '../ui'
 
 export default function TodaySubjects() {
     const { user } = useAuth()
@@ -34,21 +34,21 @@ export default function TodaySubjects() {
 
     return (
         <Card padded={false}>
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <div>
-                    <h3 className="text-sm font-semibold text-text">Today’s schedule</h3>
-                    <p className="mt-0.5 text-xs text-text-secondary">Current and upcoming sessions</p>
-                </div>
-                <Link to="/schedule" className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover">
-                    View week
-                    <HiArrowRight className="h-3.5 w-3.5" />
-                </Link>
-            </div>
+            <CardHeader
+                title="Today’s schedule"
+                description="Current and upcoming sessions"
+                action={
+                    <Link to="/schedule" className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover">
+                        View week
+                        <LuArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Link>
+                }
+            />
 
             {isLoading ? (
                 <div className="space-y-2 p-5">
-                    <div className="h-16 animate-pulse rounded-card bg-surface-hover" />
-                    <div className="h-16 animate-pulse rounded-card bg-surface-hover" />
+                    <div className="h-14 animate-pulse rounded-lg bg-surface-hover" />
+                    <div className="h-14 animate-pulse rounded-lg bg-surface-hover" />
                 </div>
             ) : schedules.length === 0 ? (
                 <EmptyState title="No sessions today" description="Scheduled sessions will appear here on the day." />
@@ -58,25 +58,23 @@ export default function TodaySubjects() {
                         <div key={`${s.subject_id}-${s.start_time}`} className="flex items-center justify-between gap-4 px-5 py-3.5">
                             <div className="min-w-0 space-y-1">
                                 <div className="flex items-center gap-2">
-                                    <span className="truncate text-sm font-medium text-text">{s.subject_name}</span>
+                                    <span className="truncate text-[13px] font-medium text-text">{s.subject_name}</span>
                                     <Badge className="font-data">{s.subject_id}</Badge>
                                 </div>
-                                <div className="flex items-center gap-3 text-xs text-text-secondary">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
                                     <span className="font-data flex items-center gap-1">
-                                        <HiOutlineClock className="h-3.5 w-3.5" />
+                                        <LuClock className="h-3 w-3" aria-hidden="true" />
                                         {s.start_time} - {s.end_time}
                                     </span>
                                     <span className="flex items-center gap-1">
-                                        <HiOutlineLocationMarker className="h-3.5 w-3.5" />
+                                        <LuMapPin className="h-3 w-3" aria-hidden="true" />
                                         {s.room}
                                     </span>
                                 </div>
                             </div>
-                            <Link to="/attendance" className="shrink-0">
-                                <Button variant="secondary" size="sm">
-                                    Attendance
-                                </Button>
-                            </Link>
+                            <Button as={Link} to="/attendance" variant="secondary" size="sm">
+                                Attendance
+                            </Button>
                         </div>
                     ))}
                 </div>

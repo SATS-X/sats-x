@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LuClock, LuClipboardList, LuGraduationCap, LuUsers } from 'react-icons/lu'
 import { getAllStudents } from '../../api/student/getStudent'
 import { getClasses } from '../../api/class/getClasses'
 import { getAllAttendance } from '../../api/attendance/getAttendance'
@@ -61,21 +62,29 @@ export default function DashboardStats() {
             items={[
                 {
                     label: t('totalStudentsCount'),
-                    value: studentCount === null ? loadingLabel : studentCount
+                    value: studentCount === null ? loadingLabel : studentCount,
+                    detail: 'Across all classes',
+                    icon: LuUsers
                 },
                 {
-                    label: t('classesTotal'),
-                    value: classCount === null ? loadingLabel : classCount
+                    label: t('classes'),
+                    value: classCount === null ? loadingLabel : classCount,
+                    detail: 'Registered in SATS X',
+                    icon: LuGraduationCap
                 },
                 {
                     label: t('todayAttendance'),
                     value: todayStats === null ? loadingLabel : todayStats.present,
-                    tone: 'present'
+                    detail: 'Recorded today',
+                    tone: 'present',
+                    icon: LuClipboardList
                 },
                 {
                     label: 'On-time rate today',
                     value: todayStats === null || todayStats.onTimeRate === null ? loadingLabel : `${todayStats.onTimeRate}%`,
-                    tone: 'late'
+                    detail: 'Of students recorded',
+                    tone: 'late',
+                    icon: LuClock
                 }
             ]}
         />

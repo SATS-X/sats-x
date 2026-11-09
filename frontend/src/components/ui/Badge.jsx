@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types'
 import classNames from 'classnames'
 
-/** Nhãn trung tính cho số đếm/tag — khác StatusChip: không có dải cạnh, không mang nghĩa trạng thái. */
+/** Nhãn trung tính cho số đếm/tag — không mang nghĩa trạng thái như StatusChip. */
 const Badge = ({ children, className }) => (
     <span
         className={classNames(
-            'inline-flex items-center rounded-chip bg-surface-hover px-2 py-0.5 text-xs font-medium text-text-secondary',
+            'inline-flex items-center rounded-md border border-border bg-surface-sunken px-1.5 py-0.5 text-[11px] font-medium text-text-secondary',
             className
         )}
     >

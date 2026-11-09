@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react'
-import classNames from 'classnames'
-import { HiOutlinePlus, HiOutlineRefresh, HiOutlineTrash, HiOutlineShieldCheck } from 'react-icons/hi'
-import { RiFingerprintLine } from 'react-icons/ri'
+import { LuFingerprint, LuPlus, LuRefreshCw, LuShieldCheck, LuTrash2 } from 'react-icons/lu'
 import { useWebSocket } from '../contexts/WebSocketContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
 import { listFaces, deleteFaceAndImage, getCollectionInfo } from '../api/websocket/faceManagement'
 import { getStudentPhotoUrl } from '../lib/s3'
 import AddFaceModal from '../components/FaceManagement/AddFaceModal'
-import { Avatar, Badge, Button, EmptyState, Modal, PageHeader, SearchInput, Spinner, StatusChip } from '../components/ui'
+import { Avatar, Button, Card, EmptyState, IconButton, LoadingState, Modal, Notice, PageHeader, SearchInput, Segmented, StatusChip } from '../components/ui'
 
 const CLASS_COLLECTIONS = [
-    { id: 'D22CQCI01-N', name: 'Class D22CQCI01-N' },
-    { id: 'D22CQCI01-B', name: 'Class D22CQCI01-B' },
-    { id: 'D22CQVT01-N', name: 'Class D22CQVT01-N' }
+    { value: 'D22CQCI01-N', label: 'D22CQCI01-N' },
+    { value: 'D22CQCI01-B', label: 'D22CQCI01-B' },
+    { value: 'D22CQVT01-N', label: 'D22CQVT01-N' }
 ]
 
 export default function FaceManagement() {
@@ -90,67 +88,27 @@ export default function FaceManagement() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title={
-                    <span className="inline-flex items-center gap-2.5">
-                        {t('faceManagement')}
-                        <Badge className="inline-flex items-center gap-1">
-                            <RiFingerprintLine className="h-3.5 w-3.5" />
-                            AWS Rekognition
-                        </Badge>
-                    </span>
-                }
+                eyebrow={`Face collection · ${collectionInfo?.faceCount ?? faces.length}`}
+                title={t('faceManagement')}
                 description={t('faceManagementDesc')}
                 actions={
                     <>
                         <Button variant="secondary" size="sm" onClick={() => fetchClassFaces(selectedClassId)}>
-                            <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                            <LuRefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} aria-hidden="true" />
                             Sync
                         </Button>
                         <Button size="sm" onClick={() => setAddModalOpen(true)}>
-                            <HiOutlinePlus className="h-4 w-4" />
+                            <LuPlus className="h-3.5 w-3.5" aria-hidden="true" />
                             Register face
                         </Button>
                     </>
                 }
             />
 
-            <div className="flex flex-wrap gap-2 rounded-card border border-border bg-surface p-2">
-                {CLASS_COLLECTIONS.map((c) => {
-                    const isSelected = selectedClassId === c.id
-                    return (
-                        <button
-                            key={c.id}
-                            onClick={() => setSelectedClassId(c.id)}
-                            className={classNames(
-                                'flex min-w-[150px] flex-1 items-center justify-between gap-2 rounded-card px-4 py-2.5 text-xs font-medium transition-colors',
-                                isSelected ? 'bg-accent text-accent-foreground' : 'text-text-secondary hover:bg-surface-hover hover:text-text'
-                            )}
-                        >
-                            <span>{c.name}</span>
-                            <span className={classNames('font-data rounded-chip px-2 py-0.5 text-[10px]', isSelected ? 'bg-white/20' : 'bg-surface-sunken')}>
-                                {isSelected && collectionInfo ? `${collectionInfo.faceCount || 0} faces` : c.id}
-                            </span>
-                        </button>
-                    )
-                })}
-            </div>
-
-            <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card border border-border text-text-secondary">
-                        <HiOutlineShieldCheck className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <div className="font-data text-xs font-medium text-text">
-                            Collection: attendance-system-{selectedClassId}
-                        </div>
-                        <div className="mt-0.5 text-xs text-text-secondary">
-                            <span className="font-data font-medium text-text">{faces.length}</span> student faces indexed
-                        </div>
-                    </div>
-                </div>
-
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <Segmented options={CLASS_COLLECTIONS} value={selectedClassId} onChange={setSelectedClassId} label="Select a class collection" />
                 <SearchInput
+                    aria-label="Search faces"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search student ID or Face ID..."
@@ -158,64 +116,64 @@ export default function FaceManagement() {
                 />
             </div>
 
+            <div className="flex items-center gap-2.5 text-xs text-text-tertiary">
+                <LuShieldCheck className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+                <span>
+                    <span className="font-data text-text-secondary">attendance-system-{selectedClassId}</span>
+                    {' · '}
+                    <span className="font-data text-text-secondary">{faces.length}</span> student faces indexed
+                </span>
+            </div>
+
             {loading ? (
-                <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
-                    <Spinner size="sm" />
-                    Querying AWS Rekognition collection...
-                </div>
+                <LoadingState label="Querying AWS Rekognition collection..." />
             ) : filteredFaces.length === 0 ? (
-                <EmptyState
-                    icon={RiFingerprintLine}
-                    title={`No faces in collection ${selectedClassId}`}
-                    description={'Select "Register face" to add the first student image.'}
-                    action={
-                        <Button size="sm" onClick={() => setAddModalOpen(true)}>
-                            <HiOutlinePlus className="h-4 w-4" />
-                            Add a face
-                        </Button>
-                    }
-                />
+                <Card padded={false}>
+                    <EmptyState
+                        icon={LuFingerprint}
+                        title={`No faces in collection ${selectedClassId}`}
+                        description="Register the first student photo to enable automatic attendance."
+                        action={
+                            <Button size="sm" onClick={() => setAddModalOpen(true)}>
+                                <LuPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                                Add a face
+                            </Button>
+                        }
+                    />
+                </Card>
             ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredFaces.map((face) => {
                         const studentId = face.externalImageId || face.faceId
                         const photoUrl = getStudentPhotoUrl(selectedClassId, studentId)
 
                         return (
-                            <div key={face.faceId} className="space-y-3 rounded-card border border-border bg-surface p-4">
-                                <div className="relative aspect-square overflow-hidden rounded-card border border-border">
+                            <Card key={face.faceId} padded={false} className="overflow-hidden transition-colors hover:border-accent/35">
+                                <div className="relative aspect-square border-b border-border">
                                     <Avatar src={photoUrl} name={studentId} size="xl" className="rounded-none border-0" />
-                                    <div className="absolute right-2 top-2">
-                                        <StatusChip variant="present">
-                                            {face.confidence ? `${Math.round(face.confidence)}%` : 'Indexed'}
-                                        </StatusChip>
-                                    </div>
+                                    <StatusChip variant="present" className="absolute right-2 top-2 bg-surface">
+                                        {face.confidence ? `${Math.round(face.confidence)}%` : 'Indexed'}
+                                    </StatusChip>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="font-data truncate text-sm font-semibold text-text">{studentId}</span>
-                                        <Badge className="font-data shrink-0">{selectedClassId}</Badge>
+                                <div className="flex items-center justify-between gap-2 p-3">
+                                    <div className="min-w-0">
+                                        <div className="font-data truncate text-[13px] font-semibold text-text">{studentId}</div>
+                                        <div className="font-data truncate text-[10px] text-text-tertiary" title={face.faceId}>
+                                            {face.faceId}
+                                        </div>
                                     </div>
-                                    <div className="font-data truncate text-[11px] text-text-tertiary" title={face.faceId}>
-                                        FID: {face.faceId}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between border-t border-border pt-2.5">
-                                    <span className="text-[11px] font-medium text-present">Active</span>
-                                    <button
+                                    <IconButton
+                                        icon={LuTrash2}
+                                        label={`Remove face for ${studentId}`}
+                                        tone="danger"
                                         onClick={() => {
                                             setSelectedFaceToDelete(face)
                                             setDeleteModalOpen(true)
                                         }}
-                                        title="Remove face from AWS"
-                                        className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
-                                    >
-                                        <HiOutlineTrash className="h-4 w-4" />
-                                    </button>
+                                    />
                                 </div>
-                            </div>
+                            </Card>
                         )
                     })}
                 </div>
@@ -245,13 +203,10 @@ export default function FaceManagement() {
             >
                 <div className="space-y-3">
                     <p className="text-sm text-text-secondary">
-                        Delete the face record for student{' '}
-                        <span className="font-data font-semibold text-text">{selectedFaceToDelete?.externalImageId}</span> from AWS Rekognition
-                        and remove its image from S3?
+                        Delete the face record for student <span className="font-data font-semibold text-text">{selectedFaceToDelete?.externalImageId}</span> from AWS
+                        Rekognition and remove its image from S3?
                     </p>
-                    <div className="rounded-card border border-danger/20 bg-danger/5 p-3 text-xs text-danger">
-                        This cannot be undone. Automatic attendance will remain unavailable until the face is registered again.
-                    </div>
+                    <Notice>This cannot be undone. Automatic attendance will remain unavailable until the face is registered again.</Notice>
                 </div>
             </Modal>
         </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { HiArrowRight } from 'react-icons/hi'
+import { LuArrowRight } from 'react-icons/lu'
 import { getAllAttendance } from '../../api/attendance/getAttendance'
-import { Avatar, Card, EmptyState, StatusChip } from '../ui'
+import { Avatar, Card, CardHeader, EmptyState, StatusChip } from '../ui'
 
 const REMARK_VARIANT = { 'On Time': 'present', Late: 'late', Absent: 'absent' }
 const REMARK_LABEL = { 'On Time': 'On time', Late: 'Late', Absent: 'Absent' }
@@ -26,43 +26,38 @@ export default function RecentAttendance() {
 
     return (
         <Card padded={false}>
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <div>
-                    <h3 className="text-sm font-semibold text-text">Recent attendance</h3>
-                    <p className="mt-0.5 text-xs text-text-secondary">Automatic facial recognition log</p>
-                </div>
-                <Link to="/attendance" className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover">
-                    View all
-                    <HiArrowRight className="h-3.5 w-3.5" />
-                </Link>
-            </div>
+            <CardHeader
+                title="Recent attendance"
+                description="Automatic facial recognition log"
+                action={
+                    <Link to="/attendance" className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover">
+                        View all
+                        <LuArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Link>
+                }
+            />
 
             {isLoading ? (
                 <div className="space-y-2 p-5">
-                    <div className="h-14 animate-pulse rounded-card bg-surface-hover" />
-                    <div className="h-14 animate-pulse rounded-card bg-surface-hover" />
+                    <div className="h-12 animate-pulse rounded-lg bg-surface-hover" />
+                    <div className="h-12 animate-pulse rounded-lg bg-surface-hover" />
                 </div>
             ) : records.length === 0 ? (
-                <EmptyState
-                    title="No attendance records yet"
-                    description="Records will appear when an ESP32-CAM device recognizes a student."
-                />
+                <EmptyState title="No attendance records yet" description="Records will appear when an ESP32-CAM device recognizes a student." />
             ) : (
                 <div className="divide-y divide-border">
                     {records.map((rec, idx) => (
                         <div key={`${rec.student_id}-${idx}`} className="flex items-center gap-3 px-5 py-3">
                             <Avatar name={rec.student_name} size="sm" />
                             <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-medium text-text">{rec.student_name || rec.student_id}</div>
-                                <div className="font-data truncate text-xs text-text-tertiary">
+                                <div className="truncate text-[13px] font-medium text-text">{rec.student_name || rec.student_id}</div>
+                                <div className="font-data truncate text-[11px] text-text-tertiary">
                                     {rec.student_id} · {rec.class_names || 'Unassigned'}
                                 </div>
                             </div>
-                            <div className="shrink-0 space-y-1 text-right">
-                                <StatusChip variant={REMARK_VARIANT[rec.remark] || 'neutral'}>
-                                    {REMARK_LABEL[rec.remark] || rec.remark}
-                                </StatusChip>
-                                <div className="font-data text-[11px] text-text-tertiary">{rec.time || '—'}</div>
+                            <div className="flex shrink-0 items-center gap-3">
+                                <span className="font-data hidden text-[11px] text-text-tertiary sm:inline">{rec.time || '—'}</span>
+                                <StatusChip variant={REMARK_VARIANT[rec.remark] || 'neutral'}>{REMARK_LABEL[rec.remark] || rec.remark}</StatusChip>
                             </div>
                         </div>
                     ))}

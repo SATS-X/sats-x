@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { HiOutlineCloudUpload } from 'react-icons/hi'
+import { LuCloudUpload } from 'react-icons/lu'
 import { useWebSocket } from '../../contexts/WebSocketContext'
 import { useToast } from '../../contexts/ToastContext'
 import {
@@ -328,7 +328,7 @@ export default function AddFaceModal({
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/jpeg,image/png" className="hidden" />
 
                     {imagePreview ? (
-                        <div className="flex items-center justify-between gap-4 rounded-card border border-border bg-surface-sunken p-3">
+                        <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-input p-3">
                             <div className="flex items-center gap-3">
                                 <img src={imagePreview} alt="Selected face preview" className="h-14 w-14 rounded-card border border-border object-cover" />
                                 <div>
@@ -353,9 +353,9 @@ export default function AddFaceModal({
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-full rounded-card border border-dashed border-border-strong bg-surface-sunken p-6 text-center transition-colors hover:border-accent hover:bg-surface-hover"
+                            className="w-full rounded-xl border border-dashed border-border-strong bg-input p-6 text-center transition-colors hover:border-accent/60 hover:bg-accent/[0.04]"
                         >
-                            <HiOutlineCloudUpload className="mx-auto h-6 w-6 text-text-tertiary" />
+                            <LuCloudUpload className="mx-auto h-5 w-5 text-accent" aria-hidden="true" />
                             <div className="mt-2 text-xs font-medium text-text">Choose an image or drop it here</div>
                             <div className="mt-0.5 text-[11px] text-text-tertiary">JPG or PNG · up to 10 MB · clear face and even light</div>
                         </button>
@@ -363,7 +363,7 @@ export default function AddFaceModal({
                 </Field>
 
                 {stage && (
-                    <div className="flex items-center gap-2 rounded-card border border-border bg-surface-sunken px-3 py-2 text-[11px] text-text-secondary">
+                    <div role="status" className="flex items-center gap-2 rounded-lg border border-border bg-input px-3 py-2 text-[11px] text-text-secondary">
                         <Spinner size="sm" />
                         <span>{STAGE_LABEL[stage]}</span>
                     </div>

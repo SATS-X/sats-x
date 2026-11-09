@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { HiOutlinePlus, HiOutlineRefresh, HiOutlineEye, HiOutlineTrash } from 'react-icons/hi'
-import { RiFingerprintLine } from 'react-icons/ri'
+import { Link } from 'react-router-dom'
+import { LuEye, LuFingerprint, LuPlus, LuRefreshCw, LuTrash2 } from 'react-icons/lu'
 import { getAllStudents } from '../api/student/getStudent'
 import { getClasses } from '../api/class/getClasses'
 import { deleteStudent } from '../api/student/deleteStudent'
@@ -12,12 +12,15 @@ import {
     Avatar,
     Badge,
     Button,
+    Card,
     EmptyState,
+    IconButton,
+    LoadingState,
     Modal,
+    Notice,
     PageHeader,
     SearchInput,
     Select,
-    Spinner,
     Table,
     TBody,
     TD,
@@ -80,8 +83,7 @@ export default function Students() {
     const filteredStudents = useMemo(() => {
         return students.filter((s) => {
             const search = searchTerm.toLowerCase()
-            const matchesSearch =
-                !searchTerm || s.name?.toLowerCase().includes(search) || s.id?.toLowerCase().includes(search)
+            const matchesSearch = !searchTerm || s.name?.toLowerCase().includes(search) || s.id?.toLowerCase().includes(search)
             const matchesClass = selectedClass === 'all' || (s.grade && s.grade.includes(selectedClass))
             return matchesSearch && matchesClass
         })
@@ -105,35 +107,32 @@ export default function Students() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title={
-                    <span className="inline-flex items-center gap-2.5">
-                        {t('studentsManagement')}
-                        <Badge>{filteredStudents.length} students</Badge>
-                    </span>
-                }
+                eyebrow={`Roster · ${filteredStudents.length}`}
+                title={t('studentsManagement')}
                 description={t('studentsManagementDesc')}
                 actions={
                     <>
                         <Button variant="secondary" size="sm" onClick={fetchStudentsData}>
-                            <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                            <LuRefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} aria-hidden="true" />
                             Refresh
                         </Button>
                         <Button size="sm" onClick={() => setAddFaceModalOpen(true)}>
-                            <HiOutlinePlus className="h-4 w-4" />
+                            <LuPlus className="h-3.5 w-3.5" aria-hidden="true" />
                             Add student / Face ID
                         </Button>
                     </>
                 }
             />
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row">
                 <SearchInput
+                    aria-label="Search students"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search by name or student ID..."
                     className="flex-1"
                 />
-                <Select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="sm:w-60">
+                <Select aria-label="Filter by class" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="sm:w-60">
                     <option value="all">All classes</option>
                     {classesList.map((c) => (
                         <option key={c.class_id} value={c.class_id}>
@@ -144,12 +143,11 @@ export default function Students() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
-                    <Spinner size="sm" />
-                    Loading students...
-                </div>
+                <LoadingState label="Loading students..." />
             ) : filteredStudents.length === 0 ? (
-                <EmptyState title="No students found" />
+                <Card padded={false}>
+                    <EmptyState title="No students found" description="Add a student or try a different search." />
+                </Card>
             ) : (
                 <Table>
                     <THead>
@@ -167,43 +165,40 @@ export default function Students() {
                                         <Avatar name={student.name} size="sm" />
                                         <div className="min-w-0">
                                             <div className="truncate font-medium text-text">{student.name}</div>
-                                            <div className="font-data text-xs text-text-tertiary">{student.id}</div>
+                                            <div className="font-data text-[11px] text-text-tertiary">{student.id}</div>
                                         </div>
                                     </div>
                                 </TD>
                                 <TD>{student.grade ? <Badge className="font-data">{student.grade}</Badge> : '—'}</TD>
                                 <TD>
                                     <div className="text-text-secondary">{student.email || '—'}</div>
-                                    <div className="font-data text-xs text-text-tertiary">{student.phone || '—'}</div>
+                                    <div className="font-data text-[11px] text-text-tertiary">{student.phone || '—'}</div>
                                 </TD>
                                 <TD>
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary">
-                                        <RiFingerprintLine className="h-4 w-4" />
-                                        View in face management
-                                    </span>
+                                    <Link to="/face-management" className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover">
+                                        <LuFingerprint className="h-3.5 w-3.5" aria-hidden="true" />
+                                        Face management
+                                    </Link>
                                 </TD>
                                 <TD>
                                     <div className="flex items-center justify-end gap-1">
-                                        <button
+                                        <IconButton
+                                            icon={LuEye}
+                                            label={`View ${student.name}`}
                                             onClick={() => {
                                                 setSelectedStudent(student)
                                                 setDetailModalOpen(true)
                                             }}
-                                            title="View details"
-                                            className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text"
-                                        >
-                                            <HiOutlineEye className="h-4 w-4" />
-                                        </button>
-                                        <button
+                                        />
+                                        <IconButton
+                                            icon={LuTrash2}
+                                            label={`Delete ${student.name}`}
+                                            tone="danger"
                                             onClick={() => {
                                                 setStudentToDelete(student)
                                                 setDeleteModalOpen(true)
                                             }}
-                                            title="Delete student"
-                                            className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
-                                        >
-                                            <HiOutlineTrash className="h-4 w-4" />
-                                        </button>
+                                        />
                                     </div>
                                 </TD>
                             </TR>
@@ -214,12 +209,7 @@ export default function Students() {
 
             <StudentDetailModal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} student={selectedStudent} />
 
-            <AddFaceModal
-                isOpen={addFaceModalOpen}
-                onClose={() => setAddFaceModalOpen(false)}
-                onAdded={fetchStudentsData}
-                withStudentRecord
-            />
+            <AddFaceModal isOpen={addFaceModalOpen} onClose={() => setAddFaceModalOpen(false)} onAdded={fetchStudentsData} withStudentRecord />
 
             <Modal
                 isOpen={deleteModalOpen}
@@ -238,12 +228,10 @@ export default function Students() {
             >
                 <div className="space-y-3">
                     <p className="text-sm text-text-secondary">
-                        Delete <span className="font-semibold text-text">{studentToDelete?.name}</span> (
-                        <span className="font-data">{studentToDelete?.id}</span>) from SATS X?
+                        Delete <span className="font-semibold text-text">{studentToDelete?.name}</span> (<span className="font-data">{studentToDelete?.id}</span>)
+                        from SATS X?
                     </p>
-                    <div className="rounded-card border border-danger/20 bg-danger/5 p-3 text-xs text-danger">
-                        This removes the student from all linked classes and subjects.
-                    </div>
+                    <Notice>This removes the student from all linked classes and subjects.</Notice>
                 </div>
             </Modal>
         </div>

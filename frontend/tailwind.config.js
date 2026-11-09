@@ -7,14 +7,15 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Outfit"', 'system-ui', '-apple-system', 'sans-serif'],
-                mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace']
+                sans: ['"Geist"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+                mono: ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
             },
             colors: {
                 bg: 'rgb(var(--color-bg) / <alpha-value>)',
                 surface: 'rgb(var(--color-surface) / <alpha-value>)',
                 'surface-hover': 'rgb(var(--color-surface-hover) / <alpha-value>)',
                 'surface-sunken': 'rgb(var(--color-surface-sunken) / <alpha-value>)',
+                input: 'rgb(var(--color-input) / <alpha-value>)',
                 border: 'rgb(var(--color-border) / <alpha-value>)',
                 'border-strong': 'rgb(var(--color-border-strong) / <alpha-value>)',
                 text: 'rgb(var(--color-text) / <alpha-value>)',
@@ -30,16 +31,17 @@ export default {
                 danger: 'rgb(var(--color-danger) / <alpha-value>)'
             },
             borderRadius: {
-                card: '0.875rem',
+                card: '0.75rem',
                 chip: '0.5rem'
             },
             boxShadow: {
-                elevated: 'var(--shadow-elevated)' /* Reserved for floating dropdowns and modals. */
+                panel: 'var(--shadow-panel)',
+                elevated: 'var(--shadow-elevated)'
             },
             keyframes: {
                 'fade-in': {
-                    '0%': { opacity: '0', transform: 'translateY(4px)' },
-                    '100%': { opacity: '1', transform: 'translateY(0)' }
+                    '0%': { transform: 'translateY(4px)' },
+                    '100%': { transform: 'translateY(0)' }
                 }
             },
             animation: {

@@ -1,17 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import {
-    HiOutlinePlus,
-    HiOutlineRefresh,
-    HiOutlinePencil,
-    HiOutlineTrash,
-    HiOutlineUsers
-} from 'react-icons/hi'
-import { RiFingerprintLine } from 'react-icons/ri'
+import { LuFingerprint, LuPencil, LuPlus, LuRefreshCw, LuTrash2, LuUsers } from 'react-icons/lu'
 import { getClasses, createClass, updateClass, deleteClass } from '../api/class/getClasses'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useToast } from '../contexts/ToastContext'
-import { Badge, Button, EmptyState, Field, Input, Modal, PageHeader, SearchInput, Spinner, StatusChip } from '../components/ui'
+import { Button, Card, EmptyState, Field, IconButton, Input, LoadingState, Modal, PageHeader, SearchInput, StatusChip } from '../components/ui'
 
 export default function Classes() {
     const { t } = useLanguage()
@@ -102,21 +95,17 @@ export default function Classes() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title={
-                    <span className="inline-flex items-center gap-2.5">
-                        {t('classesManagement')}
-                        <Badge>{filteredClasses.length} classes</Badge>
-                    </span>
-                }
+                eyebrow={`Classes · ${filteredClasses.length}`}
+                title={t('classesManagement')}
                 description={t('classesManagementDesc')}
                 actions={
                     <>
                         <Button variant="secondary" size="sm" onClick={fetchClasses}>
-                            <HiOutlineRefresh className={loading ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                            <LuRefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} aria-hidden="true" />
                             Refresh
                         </Button>
                         <Button size="sm" onClick={handleOpenCreate}>
-                            <HiOutlinePlus className="h-4 w-4" />
+                            <LuPlus className="h-3.5 w-3.5" aria-hidden="true" />
                             Create class
                         </Button>
                     </>
@@ -124,6 +113,7 @@ export default function Classes() {
             />
 
             <SearchInput
+                aria-label="Search classes"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by class ID or name..."
@@ -131,72 +121,40 @@ export default function Classes() {
             />
 
             {loading ? (
-                <div className="flex items-center justify-center gap-2 rounded-card border border-border bg-surface py-16 text-sm text-text-secondary">
-                    <Spinner size="sm" />
-                    Loading classes...
-                </div>
+                <LoadingState label="Loading classes..." />
             ) : filteredClasses.length === 0 ? (
-                <EmptyState title="No classes found" />
+                <Card padded={false}>
+                    <EmptyState title="No classes found" description="Create a class to start building its roster." />
+                </Card>
             ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2.5">
                     {filteredClasses.map((cls) => (
-                        <div key={cls.class_id} className="flex flex-col justify-between rounded-card border border-border bg-surface p-5">
-                            <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                        <h3 className="font-data truncate text-base font-semibold text-text">{cls.class_id}</h3>
-                                        <p className="mt-0.5 truncate text-xs text-text-secondary">{cls.class_name}</p>
+                        <Card key={cls.class_id} padded={false} className="transition-colors hover:border-accent/35">
+                            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h3 className="font-data truncate text-sm font-semibold text-text">{cls.class_id}</h3>
+                                        <StatusChip variant={cls.status === 'active' || !cls.status ? 'active' : 'neutral'}>{cls.status || 'active'}</StatusChip>
                                     </div>
-                                    <StatusChip variant={cls.status === 'active' || !cls.status ? 'active' : 'neutral'}>
-                                        {cls.status || 'active'}
-                                    </StatusChip>
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
+                                        <span className="truncate">{cls.class_name}</span>
+                                        <span className="flex items-center gap-1">
+                                            <LuUsers className="h-3 w-3" aria-hidden="true" />
+                                            <span className="font-data">{cls.actual_student_count ?? cls.number_of_students ?? 0}</span> students
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 rounded-card border border-border bg-surface-sunken p-3 text-xs">
-                                    <div>
-                                        <span className="font-data text-[10px] uppercase text-text-tertiary">Students</span>
-                                        <div className="mt-0.5 flex items-center gap-1.5 font-medium text-text">
-                                            <HiOutlineUsers className="h-3.5 w-3.5 text-text-tertiary" />
-                                            {cls.actual_student_count ?? cls.number_of_students ?? 0}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span className="font-data text-[10px] uppercase text-text-tertiary">Rekognition</span>
-                                        <div className="mt-0.5 flex items-center gap-1.5 font-medium text-present">
-                                            <RiFingerprintLine className="h-3.5 w-3.5" />
-                                            Connected
-                                        </div>
-                                    </div>
+                                <div className="flex shrink-0 items-center gap-1">
+                                    <Button as={Link} to="/face-management" variant="ghost" size="sm">
+                                        <LuFingerprint className="h-3.5 w-3.5" aria-hidden="true" />
+                                        Manage faces
+                                    </Button>
+                                    <IconButton icon={LuPencil} label={`Edit ${cls.class_id}`} onClick={() => handleOpenEdit(cls)} />
+                                    <IconButton icon={LuTrash2} label={`Delete ${cls.class_id}`} tone="danger" onClick={() => handleOpenDelete(cls)} />
                                 </div>
                             </div>
-
-                            <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3">
-                                <Link
-                                    to="/face-management"
-                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover"
-                                >
-                                    <RiFingerprintLine className="h-3.5 w-3.5" />
-                                    Manage faces
-                                </Link>
-
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        onClick={() => handleOpenEdit(cls)}
-                                        title="Edit"
-                                        className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text"
-                                    >
-                                        <HiOutlinePencil className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleOpenDelete(cls)}
-                                        title="Delete class"
-                                        className="rounded-card p-1.5 text-text-tertiary transition-colors hover:bg-danger/10 hover:text-danger"
-                                    >
-                                        <HiOutlineTrash className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        </Card>
                     ))}
                 </div>
             )}
@@ -254,8 +212,7 @@ export default function Classes() {
                 }
             >
                 <p className="text-sm text-text-secondary">
-                    Delete class <span className="font-data font-semibold text-text">{selectedClass?.class_id}</span>?
-                    This action cannot be undone.
+                    Delete class <span className="font-data font-semibold text-text">{selectedClass?.class_id}</span>? This action cannot be undone.
                 </p>
             </Modal>
         </div>

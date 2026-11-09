@@ -40,7 +40,7 @@ Khác với điểm danh thủ công hoặc quét mã QR (vẫn cần sinh viên
 
 ## Brand Commitments
 
-SATS X is the product identity. The interface uses an original SX monogram, Outfit typography, and an aurora-teal gradient reserved for brand-bearing surfaces and primary actions.
+SATS X is the product identity. The interface uses an original SX monogram, Geist typography, and a teal signal color. The teal gradient is reserved for the monogram and key brand moments; primary actions use inverted ink buttons.
 
 ## Evidence on Hand
 

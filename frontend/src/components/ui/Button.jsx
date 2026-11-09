@@ -1,39 +1,42 @@
 import { forwardRef } from 'react'
 import PropTypes from 'prop-types'
 import classNames from 'classnames'
-import { HiOutlineRefresh } from 'react-icons/hi'
+import { LuLoaderCircle } from 'react-icons/lu'
 
 const VARIANTS = {
-    primary: 'brand-gradient surface-glow text-white hover:brightness-105',
-    secondary: 'border border-border bg-surface/80 text-text hover:border-accent/40 hover:bg-surface-hover',
+    primary: 'bg-text text-bg shadow-sm hover:bg-text/90',
+    secondary: 'border border-border bg-surface text-text-secondary shadow-sm hover:border-border-strong hover:bg-surface-hover hover:text-text',
     ghost: 'text-text-secondary hover:bg-surface-hover hover:text-text',
-    danger: 'border border-danger/30 bg-surface text-danger hover:bg-danger/10'
+    danger: 'bg-danger/10 text-danger hover:bg-danger/20'
 }
 
 const SIZES = {
-    sm: 'h-8 px-3 text-xs gap-1.5',
-    md: 'h-9 px-4 text-sm gap-2',
-    lg: 'h-11 px-5 text-sm gap-2'
+    sm: 'h-8 rounded-lg px-3 text-xs gap-1.5',
+    md: 'h-9 rounded-lg px-3.5 text-sm gap-2',
+    lg: 'h-11 rounded-xl px-5 text-[13px] font-semibold gap-2'
 }
 
+/** `as` cho phép render thành Link mà không lồng <button> trong <a>. */
 const Button = forwardRef(
-    ({ variant = 'primary', size = 'md', loading = false, disabled, className, children, ...rest }, ref) => {
+    ({ as: Component = 'button', variant = 'primary', size = 'md', loading = false, disabled, className, children, ...rest }, ref) => {
+        const nativeProps = Component === 'button' ? { disabled: disabled || loading } : {}
+
         return (
-            <button
+            <Component
                 ref={ref}
-                disabled={disabled || loading}
                 className={classNames(
-                    'inline-flex items-center justify-center whitespace-nowrap rounded-card font-medium transition-all duration-200 active:scale-[0.98]',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
+                    'inline-flex shrink-0 items-center justify-center whitespace-nowrap font-medium transition-all duration-200 active:translate-y-px',
+                    'disabled:pointer-events-none disabled:opacity-50',
                     VARIANTS[variant],
                     SIZES[size],
                     className
                 )}
+                {...nativeProps}
                 {...rest}
             >
-                {loading && <HiOutlineRefresh className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                {loading && <LuLoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />}
                 {children}
-            </button>
+            </Component>
         )
     }
 )
@@ -41,6 +44,7 @@ const Button = forwardRef(
 Button.displayName = 'Button'
 
 Button.propTypes = {
+    as: PropTypes.elementType,
     variant: PropTypes.oneOf(['primary', 'secondary', 'ghost', 'danger']),
     size: PropTypes.oneOf(['sm', 'md', 'lg']),
     loading: PropTypes.bool,

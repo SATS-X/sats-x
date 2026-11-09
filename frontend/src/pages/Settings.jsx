@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import PropTypes from 'prop-types'
-import { HiOutlineCloud, HiOutlineClipboardCopy, HiOutlinePlay, HiOutlineRefresh } from 'react-icons/hi'
-import { RiSignalWifiFill, RiTerminalBoxLine } from 'react-icons/ri'
+import { LuCopy, LuPlay, LuRefreshCw, LuTerminal } from 'react-icons/lu'
 import { useWebSocket } from '../contexts/WebSocketContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useToast } from '../contexts/ToastContext'
 import { WS_URL, AWS_REGION, AWS_S3_BUCKET } from '../config/api'
-import { Badge, Button, Card, Select } from '../components/ui'
+import { Button, Card, CardHeader, IconButton, PageHeader, Segmented, Textarea } from '../components/ui'
 
 const QUICK_PAYLOADS = {
     Ping: '{\n  "action": "ping"\n}',
     listFaces: '{\n  "action": "listFaces",\n  "classId": "D22CQCI01-N"\n}',
     getCollectionInfo: '{\n  "action": "getCollectionInfo",\n  "classId": "D22CQCI01-N"\n}'
 }
+
+const THEME_OPTIONS = [
+    { value: 'light', label: 'Light' },
+    { value: 'dark', label: 'Dark' }
+]
 
 export default function Settings() {
     const { t } = useLanguage()
@@ -42,80 +46,67 @@ export default function Settings() {
     }
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-xl font-semibold text-text">{t('systemSettings')}</h1>
-                <p className="mt-1 text-sm text-text-secondary">{t('systemSettingsDesc')}</p>
-            </div>
+        <div className="mx-auto max-w-[960px] space-y-6">
+            <PageHeader eyebrow="System" title={t('systemSettings')} description={t('systemSettingsDesc')} />
 
             <Card padded={false}>
-                <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-card border border-border text-text-secondary">
-                            <RiSignalWifiFill className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold text-text">AWS WebSocket Gateway diagnostics</h3>
-                            <p className="text-xs text-text-secondary">Inspect the live API Gateway v2 connection</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {isConnected ? (
-                            <Button variant="secondary" size="sm" onClick={disconnect}>
-                                Disconnect
+                <CardHeader
+                    title="AWS WebSocket Gateway diagnostics"
+                    description="Inspect the live API Gateway v2 connection"
+                    action={
+                        <div className="flex shrink-0 items-center gap-2">
+                            {isConnected ? (
+                                <Button variant="secondary" size="sm" onClick={disconnect}>
+                                    Disconnect
+                                </Button>
+                            ) : (
+                                <Button size="sm" onClick={() => connect()}>
+                                    <LuRefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                                    Reconnect
+                                </Button>
+                            )}
+                            <Button variant="secondary" size="sm" disabled={!isConnected} onClick={ping}>
+                                Measure latency
                             </Button>
-                        ) : (
-                            <Button size="sm" onClick={connect}>
-                                <HiOutlineRefresh className="h-3.5 w-3.5" />
-                                Reconnect
-                            </Button>
-                        )}
-                        <Button variant="secondary" size="sm" disabled={!isConnected} onClick={ping}>
-                            Measure latency
-                        </Button>
-                    </div>
-                </div>
+                        </div>
+                    }
+                />
 
                 <div className="space-y-6 p-5">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
                         <InfoTile label="Status">
                             <span className="flex items-center gap-2">
-                                <span className={`h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-present' : 'bg-text-tertiary'}`} />
-                                <span className={isConnected ? 'text-present' : 'text-text'}>
-                                    {isConnected ? 'Connected' : connectionStatus}
-                                </span>
+                                <span className={`h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-present' : 'bg-text-tertiary'}`} aria-hidden="true" />
+                                <span className={isConnected ? 'text-present' : 'text-text'}>{isConnected ? 'Connected' : connectionStatus}</span>
                             </span>
                         </InfoTile>
                         <InfoTile label="Round-trip latency">{latency ? `${latency} ms` : '—'}</InfoTile>
                         <InfoTile label="Protocol">WSS / JSON</InfoTile>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-text">Endpoint WebSocket Gateway</label>
+                    <div className="space-y-2">
+                        <label htmlFor="ws-endpoint" className="field-label">
+                            WebSocket endpoint
+                        </label>
                         <div className="flex gap-2">
-                            <input
-                                readOnly
-                                value={WS_URL}
-                                className="font-data h-9 w-full rounded-card border border-border bg-surface-sunken px-3 text-xs text-text-secondary"
-                            />
-                            <Button variant="secondary" size="sm" onClick={() => copyToClipboard(WS_URL)} title="Copy URL">
-                                <HiOutlineClipboardCopy className="h-4 w-4" />
-                            </Button>
+                            <input id="ws-endpoint" readOnly value={WS_URL} className="control font-data h-9 px-3 text-xs text-text-secondary" />
+                            <IconButton icon={LuCopy} label="Copy endpoint URL" className="h-9 w-9 border border-border bg-surface" onClick={() => copyToClipboard(WS_URL)} />
                         </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <label className="flex items-center gap-1.5 text-sm font-medium text-text">
-                                <RiTerminalBoxLine className="h-4 w-4" />
-                                Send a live test payload
+                            <label htmlFor="ws-payload" className="field-label flex items-center gap-1.5">
+                                <LuTerminal className="h-3.5 w-3.5" aria-hidden="true" />
+                                Live test payload
                             </label>
                             <div className="flex gap-1.5">
                                 {Object.entries(QUICK_PAYLOADS).map(([label, payload]) => (
                                     <button
                                         key={label}
+                                        type="button"
                                         onClick={() => setCustomPayload(payload)}
-                                        className="font-data rounded-chip bg-surface-hover px-2 py-1 text-[11px] text-text-secondary hover:text-text"
+                                        className="font-data rounded-full border border-border bg-surface-sunken px-2.5 py-1 text-[10px] text-text-secondary transition-colors hover:border-accent/30 hover:bg-accent/[0.08] hover:text-text"
                                     >
                                         {label}
                                     </button>
@@ -123,16 +114,11 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        <textarea
-                            rows={4}
-                            value={customPayload}
-                            onChange={(e) => setCustomPayload(e.target.value)}
-                            className="font-data h-auto min-h-[6rem] w-full rounded-card border border-border bg-surface-sunken p-3 text-xs text-text"
-                        />
+                        <Textarea id="ws-payload" rows={4} value={customPayload} onChange={(e) => setCustomPayload(e.target.value)} className="font-data text-xs" />
 
                         <div className="flex justify-end">
                             <Button size="sm" disabled={!isConnected || sending} onClick={handleSendTestPayload}>
-                                <HiOutlinePlay className="h-3.5 w-3.5" />
+                                <LuPlay className="h-3.5 w-3.5" aria-hidden="true" />
                                 Send WebSocket frame
                             </Button>
                         </div>
@@ -140,12 +126,12 @@ export default function Settings() {
 
                     {messageHistory.length > 0 && (
                         <div className="space-y-2">
-                            <div className="text-xs font-semibold text-text-secondary">Received frame log ({messageHistory.length})</div>
-                            <div className="font-data max-h-48 space-y-2 overflow-y-auto rounded-card border border-border bg-surface-sunken p-3 text-xs">
+                            <div className="field-label">Received frames · {messageHistory.length}</div>
+                            <div className="font-data max-h-48 space-y-2 overflow-y-auto rounded-lg border border-border bg-input p-3 text-xs">
                                 {messageHistory.map((item) => (
                                     <div key={item.id} className="border-b border-border pb-1.5 last:border-0">
                                         <span className="text-text-tertiary">{new Date(item.timestamp).toLocaleTimeString()} → </span>
-                                        <span className="text-text-secondary">{JSON.stringify(item.data)}</span>
+                                        <span className="break-all text-text-secondary">{JSON.stringify(item.data)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -154,46 +140,32 @@ export default function Settings() {
                 </div>
             </Card>
 
-            <Card padded={false}>
-                <div className="flex items-center gap-3 border-b border-border p-5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-card border border-border text-text-secondary">
-                        <HiOutlineCloud className="h-5 w-5" />
+            <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
+                <Card padded={false}>
+                    <CardHeader title="AWS infrastructure" description="Provisioned with Terraform" />
+                    <div className="m-5 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border">
+                        <InfoTile label="AWS region">{AWS_REGION}</InfoTile>
+                        <InfoTile label="S3 storage bucket">{AWS_S3_BUCKET}</InfoTile>
                     </div>
-                    <div>
-                        <h3 className="text-sm font-semibold text-text">AWS infrastructure</h3>
-                        <p className="text-xs text-text-secondary">Provisioned automatically with Terraform</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2">
-                    <InfoTile label="AWS Region">{AWS_REGION}</InfoTile>
-                    <InfoTile label="S3 Storage Bucket">{AWS_S3_BUCKET}</InfoTile>
-                </div>
-            </Card>
+                </Card>
 
-            <Card padded={false}>
-                <div className="border-b border-border p-5">
-                    <h3 className="text-sm font-semibold text-text">{t('appearance')}</h3>
-                    <p className="text-xs text-text-secondary">{t('appearanceDesc')}</p>
-                </div>
-                <div className="space-y-4 p-5">
-                    <div className="flex items-center justify-between">
+                <Card padded={false}>
+                    <CardHeader title={t('appearance')} description={t('appearanceDesc')} />
+                    <div className="flex items-center justify-between gap-4 p-5">
                         <span className="text-sm text-text">Theme</span>
-                        <Select value={theme} onChange={(e) => setTheme(e.target.value)} className="w-40">
-                            <option value="light">Light</option>
-                            <option value="dark">Dark</option>
-                        </Select>
+                        <Segmented options={THEME_OPTIONS} value={theme} onChange={setTheme} label="Theme" />
                     </div>
-                </div>
-            </Card>
+                </Card>
+            </div>
         </div>
     )
 }
 
 function InfoTile({ label, children }) {
     return (
-        <div className="space-y-1 rounded-card border border-border bg-surface-sunken p-4">
-            <div className="text-[11px] uppercase tracking-wide text-text-tertiary">{label}</div>
-            <div className="font-data text-sm font-semibold text-text">{children}</div>
+        <div className="min-w-0 bg-surface p-4">
+            <div className="text-xs text-text-tertiary">{label}</div>
+            <div className="font-data mt-1 truncate text-sm font-medium text-text">{children}</div>
         </div>
     )
 }

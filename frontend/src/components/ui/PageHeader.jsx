@@ -1,17 +1,18 @@
 import PropTypes from 'prop-types'
 
-/** Tiêu đề trang dùng chung — không dùng kicker/eyebrow, heading tự mang đủ trọng lượng. */
-const PageHeader = ({ title, description, actions }) => (
-    <div className="flex flex-col gap-5 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-text sm:text-3xl">{title}</h1>
-            {description && <p className="mt-1 text-sm text-text-secondary">{description}</p>}
+const PageHeader = ({ eyebrow, title, description, actions }) => (
+    <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+            {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-text">{title}</h1>
+            {description && <p className="mt-1.5 max-w-2xl text-sm text-text-tertiary">{description}</p>}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2 md:shrink-0">{actions}</div>}
     </div>
 )
 
 PageHeader.propTypes = {
+    eyebrow: PropTypes.node,
     title: PropTypes.node.isRequired,
     description: PropTypes.node,
     actions: PropTypes.node

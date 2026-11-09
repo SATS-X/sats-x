@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { LuClipboardList, LuScanFace } from 'react-icons/lu'
 import { useAuth } from '../contexts/AuthContext'
 import { useWebSocket } from '../contexts/WebSocketContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import DashboardStats from '../components/Dashboard/DashboardStats'
 import RecentAttendance from '../components/Dashboard/RecentAttended'
 import TodaySubjects from '../components/Dashboard/TodaySubjects'
-import { HiOutlinePhotograph, HiOutlineClipboardList } from 'react-icons/hi'
-import { Avatar, Button, PageHeader, StatusChip } from '../components/ui'
+import { Avatar, Button, Card, CardHeader, PageHeader, StatusChip } from '../components/ui'
 
 export default function Dashboard() {
     const { user } = useAuth()
@@ -29,38 +29,31 @@ export default function Dashboard() {
     return (
         <div className="space-y-6">
             <PageHeader
-                title={`${t('welcomeBack')}, ${user?.full_name || user?.email || 'Instructor'}`}
-                description="Live attendance operations powered by connected ESP32-CAM devices and AWS Rekognition."
+                eyebrow="Operations"
+                title={`${t('welcomeBack').replace(/!$/, '')}, ${user?.full_name || user?.email || 'Instructor'}`}
+                description="Today’s attendance, sessions, and class roster at a glance."
                 actions={
                     <>
-                        <Link to="/face-management">
-                            <Button variant="secondary" size="sm">
-                                <HiOutlinePhotograph className="h-4 w-4" />
-                                Register face
-                            </Button>
-                        </Link>
-                        <Link to="/attendance">
-                            <Button size="sm">
-                                <HiOutlineClipboardList className="h-4 w-4" />
-                                View attendance
-                            </Button>
-                        </Link>
+                        <Button as={Link} to="/face-management" variant="secondary" size="sm">
+                            <LuScanFace className="h-3.5 w-3.5" aria-hidden="true" />
+                            Register face
+                        </Button>
+                        <Button as={Link} to="/attendance" size="sm">
+                            <LuClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                            View attendance
+                        </Button>
                     </>
                 }
             />
 
+            <DashboardStats />
+
             {liveEvents.length > 0 && (
-                <div className="rounded-card border border-border bg-surface">
-                    <div className="flex items-center justify-between border-b border-border px-5 py-3">
-                        <div className="flex items-center gap-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-present" aria-hidden="true" />
-                            <span className="text-xs font-semibold text-text">Live recognition</span>
-                        </div>
-                        <span className="font-data text-[11px] text-text-tertiary">AWS Rekognition</span>
-                    </div>
+                <Card padded={false}>
+                    <CardHeader title="Live recognition" description="Latest matches from AWS Rekognition" />
                     <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
                         {liveEvents.map((evt) => (
-                            <div key={evt.id} className="flex items-center gap-3 rounded-card border border-border p-3">
+                            <div key={evt.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
                                 <Avatar name={evt.studentId} size="sm" />
                                 <div className="min-w-0 flex-1">
                                     <div className="font-data truncate text-xs font-medium text-text">{evt.studentId || 'Unknown'}</div>
@@ -72,14 +65,12 @@ export default function Dashboard() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </Card>
             )}
 
-            <DashboardStats />
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <TodaySubjects />
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.25fr_1fr]">
                 <RecentAttendance />
+                <TodaySubjects />
             </div>
         </div>
     )

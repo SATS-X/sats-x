@@ -1,19 +1,15 @@
 import PropTypes from 'prop-types'
 import classNames from 'classnames'
 
-/**
- * Bảng dữ liệu dùng chung. Hàng đóng vai trò "thẻ" — không zebra-stripe, ranh giới
- * là hairline, hover là surface-hover, giữ đúng ngôn ngữ thẻ định danh xuyên suốt app.
- */
 export const Table = ({ children, className }) => (
-    <div className="overflow-x-auto rounded-card border border-border">
-        <table className={classNames('w-full border-collapse text-sm', className)}>{children}</table>
+    <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-panel">
+        <table className={classNames('w-full min-w-[720px] border-collapse text-[13px]', className)}>{children}</table>
     </div>
 )
 Table.propTypes = { children: PropTypes.node, className: PropTypes.string }
 
 export const THead = ({ children }) => (
-    <thead className="border-b border-border bg-surface-sunken">
+    <thead className="border-b border-border">
         <tr>{children}</tr>
     </thead>
 )
@@ -21,10 +17,7 @@ THead.propTypes = { children: PropTypes.node }
 
 export const TH = ({ children, className, ...rest }) => (
     <th
-        className={classNames(
-            'whitespace-nowrap px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-text-tertiary',
-            className
-        )}
+        className={classNames('whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-[0.08em] text-text-tertiary', className)}
         {...rest}
     >
         {children}
@@ -32,14 +25,11 @@ export const TH = ({ children, className, ...rest }) => (
 )
 TH.propTypes = { children: PropTypes.node, className: PropTypes.string }
 
-export const TBody = ({ children }) => <tbody className="divide-y divide-border bg-surface">{children}</tbody>
+export const TBody = ({ children }) => <tbody className="divide-y divide-border">{children}</tbody>
 TBody.propTypes = { children: PropTypes.node }
 
 export const TR = ({ children, className, onClick }) => (
-    <tr
-        onClick={onClick}
-        className={classNames('transition-colors', onClick && 'cursor-pointer hover:bg-surface-hover', className)}
-    >
+    <tr onClick={onClick} className={classNames('transition-colors hover:bg-surface-sunken/70', onClick && 'cursor-pointer', className)}>
         {children}
     </tr>
 )

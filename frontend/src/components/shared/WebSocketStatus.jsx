@@ -1,46 +1,36 @@
 import PropTypes from 'prop-types'
 import classNames from 'classnames'
-import { HiOutlineRefresh } from 'react-icons/hi'
+import { LuRefreshCw } from 'react-icons/lu'
 import { useWebSocket } from '../../contexts/WebSocketContext'
 
-const DOT_TONE = {
-    connected: 'bg-present',
-    connecting: 'bg-late animate-pulse',
-    disconnected: 'bg-text-tertiary'
+const TONE = {
+    connected: { pill: 'border-present/20 bg-present/[0.08] text-present', dot: 'bg-present' },
+    connecting: { pill: 'border-late/20 bg-late/[0.08] text-late', dot: 'bg-late animate-pulse' },
+    disconnected: { pill: 'border-border bg-surface text-text-secondary', dot: 'bg-text-tertiary' }
 }
 
 export default function WebSocketStatus({ compact = false }) {
     const { isConnected, connectionStatus, connect, latency } = useWebSocket()
-    const tone = isConnected ? 'connected' : connectionStatus === 'connecting' ? 'connecting' : 'disconnected'
+    const state = isConnected ? 'connected' : connectionStatus === 'connecting' ? 'connecting' : 'disconnected'
+    const canRetry = state === 'disconnected'
 
-    const label = isConnected
-        ? `Connected${latency ? ` · ${latency}ms` : ''}`
-        : connectionStatus === 'connecting'
-          ? 'Connecting…'
-          : 'Disconnected'
+    const label = isConnected ? `Live${latency ? ` · ${latency}ms` : ''}` : state === 'connecting' ? 'Connecting' : 'Offline'
 
     if (compact) {
         return (
-            <div className="flex items-center gap-2 px-1 text-xs text-text-secondary">
-                <span className={classNames('h-1.5 w-1.5 shrink-0 rounded-full', DOT_TONE[tone])} aria-hidden="true" />
-                <span className="font-data truncate">{label}</span>
-                {!isConnected && connectionStatus !== 'connecting' && (
-                    <button onClick={connect} className="ml-auto shrink-0 text-accent hover:text-accent-hover" title="Reconnect">
-                        <HiOutlineRefresh className="h-3.5 w-3.5" />
-                    </button>
-                )}
-            </div>
+            <span role="status" title={`Device gateway: ${label}`} aria-label={`Device gateway: ${label}`} className="grid h-9 w-6 place-items-center">
+                <span className={classNames('h-2 w-2 rounded-full', TONE[state].dot)} />
+            </span>
         )
     }
 
     return (
-        <div className="inline-flex items-center gap-2.5 rounded-chip border border-border bg-surface px-3 py-1.5 text-xs">
-            <span className={classNames('h-1.5 w-1.5 shrink-0 rounded-full', DOT_TONE[tone])} aria-hidden="true" />
-            <span className="font-medium text-text-secondary">{label}</span>
-            {!isConnected && connectionStatus !== 'connecting' && (
-                <button onClick={connect} className="flex items-center gap-1 font-medium text-accent hover:text-accent-hover">
-                    <HiOutlineRefresh className="h-3 w-3" />
-                    Retry
+        <div role="status" className={classNames('inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[10px] uppercase tracking-[0.08em]', TONE[state].pill)}>
+            <span className={classNames('h-1.5 w-1.5 shrink-0 rounded-full', TONE[state].dot)} aria-hidden="true" />
+            {label}
+            {canRetry && (
+                <button type="button" onClick={() => connect()} aria-label="Reconnect to device gateway" title="Reconnect" className="ml-0.5 text-accent hover:text-accent-hover">
+                    <LuRefreshCw className="h-3 w-3" />
                 </button>
             )}
         </div>

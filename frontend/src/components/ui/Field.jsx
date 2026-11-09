@@ -3,19 +3,15 @@ import classNames from 'classnames'
 
 /** Bọc label + control + thông báo lỗi, dùng chung cho mọi form trong hệ thống. */
 const Field = ({ label, htmlFor, error, hint, required, className, children }) => (
-    <div className={classNames('flex flex-col gap-1.5', className)}>
+    <div className={classNames('flex flex-col gap-2', className)}>
         {label && (
-            <label htmlFor={htmlFor} className="text-sm font-medium text-text">
+            <label htmlFor={htmlFor} className="field-label">
                 {label}
                 {required && <span className="text-danger"> *</span>}
             </label>
         )}
         {children}
-        {error ? (
-            <p className="text-xs text-danger">{error}</p>
-        ) : (
-            hint && <p className="text-xs text-text-tertiary">{hint}</p>
-        )}
+        {error ? <p className="text-xs text-danger">{error}</p> : hint && <p className="text-xs text-text-tertiary">{hint}</p>}
     </div>
 )
 

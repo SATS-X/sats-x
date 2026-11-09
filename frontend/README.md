@@ -137,9 +137,9 @@ sequenceDiagram
 
 ## SATS X Design System
 
-- **Aurora-teal signature**: A focused emerald-to-cyan gradient identifies primary actions and brand-bearing surfaces.
+- **Teal signal**: One teal accent marks links and focus, and its gradient is reserved for the SX monogram and key brand moments. Primary actions use inverted ink buttons.
 - **Operational neutrals**: Cool, low-chroma surfaces keep dense attendance data readable in light and dark themes.
-- **Typography**: Outfit carries product hierarchy while IBM Plex Mono aligns identifiers, time values, and metrics.
+- **Typography**: Geist carries product hierarchy while Geist Mono aligns identifiers, time values, and metrics.
 - **Dark & Light Mode**: Persistent theme switching managed via `ThemeContext` and Tailwind `dark:` variants.
 - **English-only interface**: Product copy and operational messages use one consistent language throughout the application.
 
