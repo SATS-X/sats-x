@@ -33,6 +33,11 @@ model Teacher {
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at")
 
+  // Mã kích hoạt dùng một lần do admin cấp (scripts/create-activation-code.js).
+  // Chỉ lưu SHA-256: rò rỉ DB cũng không dùng được mã để chiếm tài khoản.
+  activationCodeHash      String?   @map("activation_code_hash") @db.Char(64)
+  activationCodeExpiresAt DateTime? @map("activation_code_expires_at")
+
   // Các trường trước đây nằm ở Cognito custom attributes (Profile.jsx đọc)
   birthdate  DateTime? @db.Date
   address    String?   @db.VarChar(255)

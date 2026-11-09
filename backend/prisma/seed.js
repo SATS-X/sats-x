@@ -110,7 +110,7 @@ const run = async () => {
 
     console.log('Seed xong.');
     console.log(`  Activated teacher: instructor@satsx.dev / MatKhau123 (${teacher.teacherId})`);
-    console.log('  Invited teacher: invited@satsx.dev (GV003)');
+    console.log('  Invited teacher: invited@satsx.dev (GV003) - issue a code with scripts/create-activation-code.js');
 };
 
 run()

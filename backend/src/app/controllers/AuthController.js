@@ -4,10 +4,13 @@ import {
     BCRYPT_ROUNDS,
     REFRESH_COOKIE_NAME,
     REFRESH_TOKEN_TTL_DAYS,
+    WS_TICKET_TTL_SECONDS,
     hashToken,
+    isWsTicketConfigured,
     refreshCookieOptions,
     signAccessToken,
     signRefreshToken,
+    signWsTicket,
     verifyRefreshToken
 } from '../../config/auth.js';
 
@@ -76,37 +79,46 @@ const issueSession = async (res, teacher, userAgent) => {
 /**
  * POST /api/auth/activate
  * Kích hoạt lần đầu cho giáo viên đã có sẵn trong bảng teacher nhưng chưa có mật khẩu.
- * Không tạo tài khoản mới — đây là lý do endpoint này mở công khai được:
- * người lạ không tự tạo được tài khoản, chỉ đặt mật khẩu cho bản ghi already exists.
+ * Bắt buộc có mã dùng một lần do admin cấp: chỉ biết email thì không đủ, nếu không
+ * ai cũng đặt được mật khẩu cho tài khoản chưa kích hoạt và chiếm luôn tài khoản đó.
  */
 export const activate = async (req, res) => {
     try {
-        const { email, password } = req.body || {};
+        const { email, password, activation_code: activationCode } = req.body || {};
 
         if (!email || !EMAIL_RE.test(email)) {
             return fail(res, 400, 'ValidationError', 'Invalid email address');
+        }
+
+        if (typeof activationCode !== 'string' || !activationCode.trim()) {
+            return fail(res, 400, 'ValidationError', 'Missing activation code');
         }
 
         if (!isStrongPassword(password)) {
             return fail(res, 400, 'ValidationError', 'Password must be at least 8 characters and contain letters and numbers');
         }
 
-        const teacher = await prisma.teacher.findUnique({
-            where: { email },
-            select: { teacherId: true, passwordHash: true, isActive: true }
+        // Kiểm tra và tiêu thụ mã trong đúng một câu UPDATE, nên hai request đồng thời
+        // không thể cùng dùng một mã.
+        const { count } = await prisma.teacher.updateMany({
+            where: {
+                email,
+                isActive: true,
+                passwordHash: null,
+                activationCodeHash: hashToken(activationCode.trim()),
+                activationCodeExpiresAt: { gt: new Date() }
+            },
+            data: {
+                passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS),
+                activationCodeHash: null,
+                activationCodeExpiresAt: null
+            }
         });
 
         // Thông báo giống hệt nhau ở mọi nhánh thất bại để không lộ email nào có trong hệ thống.
-        const generic = 'Activation failed. The account does not exist or is already active.';
-
-        if (!teacher || !teacher.isActive || teacher.passwordHash !== null) {
-            return fail(res, 400, 'ActivationFailed', generic);
+        if (count !== 1) {
+            return fail(res, 400, 'ActivationFailed', 'Activation failed. Check your email and activation code.');
         }
-
-        await prisma.teacher.update({
-            where: { teacherId: teacher.teacherId },
-            data: { passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS) }
-        });
 
         return res.status(200).json({
             success: true,
@@ -371,6 +383,34 @@ export const updateMe = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in updateMe:', error);
+        return fail(res, 500, 'Internal server error', error.message);
+    }
+};
+
+/** POST /api/auth/ws-ticket — vé ngắn hạn để kết nối WebSocket API Gateway */
+export const wsTicket = async (req, res) => {
+    try {
+        if (!isWsTicketConfigured()) {
+            return fail(res, 503, 'ServerMisconfigured', 'WS_TICKET_SECRET is not configured on the server');
+        }
+
+        // Đọc role từ DB thay vì JWT, để tài khoản vừa bị khoá không lấy được vé mới.
+        const teacher = await prisma.teacher.findFirst({
+            where: { teacherId: req.user.teacher_id, isActive: true },
+            select: { teacherId: true, role: true }
+        });
+
+        if (!teacher) {
+            return fail(res, 401, 'Unauthorized', 'Account is no longer active');
+        }
+
+        return res.status(200).json({
+            success: true,
+            ticket: signWsTicket({ teacher_id: teacher.teacherId, role: teacher.role }),
+            expiresIn: WS_TICKET_TTL_SECONDS
+        });
+    } catch (error) {
+        console.error('Error in wsTicket:', error);
         return fail(res, 500, 'Internal server error', error.message);
     }
 };

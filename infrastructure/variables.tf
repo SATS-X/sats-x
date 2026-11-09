@@ -111,6 +111,28 @@ variable "backend_service_token" {
   sensitive   = true
 }
 
+variable "ws_ticket_secret" {
+  description = "Verifies console WebSocket tickets. Must match WS_TICKET_SECRET on the backend. Pass via TF_VAR_ws_ticket_secret."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.ws_ticket_secret) >= 32
+    error_message = "ws_ticket_secret must be at least 32 characters."
+  }
+}
+
+variable "ws_device_token" {
+  description = "Authenticates the ESP32-CAM WebSocket connection. Must match WS_DEVICE_TOKEN in the firmware secrets. Pass via TF_VAR_ws_device_token."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.ws_device_token) >= 32 && can(regex("^[A-Za-z0-9_-]+$", var.ws_device_token))
+    error_message = "ws_device_token must be at least 32 URL-safe characters."
+  }
+}
+
 variable "api_stage_name" {
   description = "WebSocket API stage name. Appears in the URL: wss://.../<stage>."
   type        = string

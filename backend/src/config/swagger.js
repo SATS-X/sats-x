@@ -96,16 +96,17 @@ const swaggerDocument = {
             post: {
                 summary: 'Set the initial password for a pre-provisioned teacher',
                 description:
-                    'Only succeeds when the teacher already exists and has no password. ' +
-                    'It does not create accounts and can therefore remain public.',
+                    'Requires a one-time activation code issued by an administrator with ' +
+                    'scripts/create-activation-code.js. Only succeeds for an existing teacher with no password.',
                 tags: ['Auth'],
                 requestBody: {
                     required: true,
                     content: json({
                         type: 'object',
-                        required: ['email', 'password'],
+                        required: ['email', 'activation_code', 'password'],
                         properties: {
                             email: { type: 'string' },
+                            activation_code: { type: 'string', description: 'One-time code from an administrator' },
                             password: { type: 'string', description: 'At least 8 characters with letters and numbers' }
                         }
                     })
@@ -113,6 +114,17 @@ const swaggerDocument = {
                 responses: {
                     200: { description: 'Activated successfully' },
                     400: { description: 'Activation failed' }
+                }
+            }
+        },
+        '/api/auth/ws-ticket': {
+            post: {
+                summary: 'Issue a 60-second ticket for connecting to the WebSocket API',
+                tags: ['Auth'],
+                responses: {
+                    200: { description: 'Ticket issued' },
+                    401: { description: 'Missing, invalid, or inactive session' },
+                    503: { description: 'WS_TICKET_SECRET is not configured' }
                 }
             }
         },

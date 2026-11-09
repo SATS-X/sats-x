@@ -8,7 +8,8 @@ import {
     me,
     refresh,
     register,
-    updateMe
+    updateMe,
+    wsTicket
 } from '../app/controllers/AuthController.js';
 import { requireAuth, requireRole } from '../app/middlewares/authMiddleware.js';
 
@@ -38,6 +39,7 @@ router.post('/logout', logout);
 router.get('/me', requireAuth, me);
 router.put('/me', requireAuth, updateMe);
 router.post('/change-password', requireAuth, changePassword);
+router.post('/ws-ticket', requireAuth, wsTicket);
 
 // Chỉ admin
 router.post('/register', requireAuth, requireRole('admin'), register);

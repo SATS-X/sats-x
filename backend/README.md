@@ -288,7 +288,8 @@ When edge devices interact with the backend via AWS Lambda handlers (`schedule`,
 | Method | Endpoint | Access Level | Description |
 |:---|:---|:---|:---|
 | `POST` | `/api/auth/login` | Public | Authenticate teacher credentials, returns `accessToken` + sets `httpOnly` cookie |
-| `POST` | `/api/auth/activate` | Public | Initial password setup for pre-enrolled faculty members |
+| `POST` | `/api/auth/activate` | Activation code | Initial password setup using a one-time code from `node scripts/create-activation-code.js <email> [hours]` |
+| `POST` | `/api/auth/ws-ticket` | Authenticated | Issue a 60-second ticket for connecting to the WebSocket API |
 | `POST` | `/api/auth/refresh` | Cookie Auth | Rotate refresh token and grant a new 15-minute access token |
 | `POST` | `/api/auth/logout` | Cookie Auth | Invalidate current session and clear refresh cookie |
 | `GET` | `/api/auth/me` | Authenticated | Retrieve authenticated user profile and institutional role |
@@ -386,7 +387,7 @@ Authenticated strictly via `Authorization: Bearer <SERVICE_TOKEN>`.
 | Email | Password | Role | Description |
 |:---|:---|:---|:---|
 | `instructor@satsx.dev` | `MatKhau123` | Teacher (`GV002`) | Pre-activated faculty account |
-| `invited@satsx.dev` | *Unset* | Teacher (`GV003`) | Demonstrates `/api/auth/activate` flow |
+| `invited@satsx.dev` | *Unset* | Teacher (`GV003`) | Demonstrates `/api/auth/activate` flow (issue a code with `scripts/create-activation-code.js`) |
 
 To create an initial administrative account:
 ```bash
@@ -456,6 +457,7 @@ flowchart LR
 | `JWT_ACCESS_EXPIRES_IN`| `string` | `15m` | Access token time-to-live |
 | `JWT_REFRESH_EXPIRES_IN`| `string`| `7d` | Refresh token time-to-live |
 | `SERVICE_TOKEN` | `string` | `96-char hex` | Shared secret for AWS Lambda webhook verification |
+| `WS_TICKET_SECRET` | `string` | `96-char hex` | Signs WebSocket connection tickets; must match `ws_ticket_secret` in Terraform |
 | `CORS_ORIGINS` | `string` | `http://localhost:3000,https://app.satsx.dev` | Comma-delimited list of allowed CORS origins |
 
 ---

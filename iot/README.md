@@ -210,6 +210,7 @@ static const char AWS_CERT_PRIVATE_ESP32[] PROGMEM = R"EOF(...)EOF";
 ```cpp
 #define THINGNAME_ESP32_CAM        "attendance-system-dev-esp32-cam"
 #define AWS_IOT_ENDPOINT_ESP32_CAM  "xxxx-ats.iot.ap-southeast-1.amazonaws.com"
+#define WS_DEVICE_TOKEN             "same-value-as-terraform-ws_device_token"
 static const char AWS_CERT_CRT_ESP32_CAM[]     PROGMEM = R"EOF(...)EOF";
 static const char AWS_CERT_PRIVATE_ESP32_CAM[] PROGMEM = R"EOF(...)EOF";
 ```

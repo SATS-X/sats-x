@@ -16,12 +16,33 @@ resource "aws_apigatewayv2_integration" "this" {
   content_handling_strategy = "CONVERT_TO_TEXT"
 }
 
+resource "aws_apigatewayv2_authorizer" "connect" {
+  api_id           = aws_apigatewayv2_api.this.id
+  name             = "${var.api_name}-connect"
+  authorizer_type  = "REQUEST"
+  authorizer_uri   = var.connect_authorizer.lambda_invoke_arn
+  identity_sources = ["route.request.querystring.token"]
+}
+
+resource "aws_lambda_permission" "connect_authorizer" {
+  statement_id  = "AllowInvokeFromWebSocketAuthorizer"
+  action        = "lambda:InvokeFunction"
+  function_name = var.connect_authorizer.lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/authorizers/${aws_apigatewayv2_authorizer.connect.id}"
+}
+
 resource "aws_apigatewayv2_route" "this" {
   for_each = var.routes
 
   api_id    = aws_apigatewayv2_api.this.id
   route_key = each.key
   target    = "integrations/${aws_apigatewayv2_integration.this[each.key].id}"
+
+  # API Gateway only runs WebSocket authorizers on $connect; the role it returns
+  # is enforced by each route's Lambda.
+  authorization_type = each.key == "$connect" ? "CUSTOM" : "NONE"
+  authorizer_id      = each.key == "$connect" ? aws_apigatewayv2_authorizer.connect.id : null
 }
 
 resource "aws_lambda_permission" "this" {

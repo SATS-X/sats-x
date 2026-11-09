@@ -17,6 +17,14 @@ variable "routes" {
   }))
 }
 
+variable "connect_authorizer" {
+  description = "Lambda REQUEST authorizer for the $connect route. Clients pass credentials as ?token=."
+  type = object({
+    lambda_invoke_arn    = string
+    lambda_function_name = string
+  })
+}
+
 variable "route_selection_expression" {
   description = "JSONPath expression in the payload body that determines routing."
   type        = string

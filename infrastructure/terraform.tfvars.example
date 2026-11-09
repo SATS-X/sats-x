@@ -16,3 +16,5 @@ backend_api_url = "http://localhost:3000"
 
 # Pass sensitive values via environment variable:
 # export TF_VAR_backend_service_token="your-token-here"
+# export TF_VAR_ws_ticket_secret="same-value-as-backend-WS_TICKET_SECRET"
+# export TF_VAR_ws_device_token="same-value-as-firmware-WS_DEVICE_TOKEN"

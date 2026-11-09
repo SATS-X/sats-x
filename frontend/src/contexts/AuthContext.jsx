@@ -98,9 +98,13 @@ export const AuthProvider = ({ children }) => {
 
     // Kích hoạt tài khoản đã có sẵn trong hệ thống (đặt mật khẩu lần đầu).
     // Khác với register: không tạo mới, chỉ đặt mật khẩu cho giáo viên đã tồn tại.
-    const activate = async (email, password) => {
+    const activate = async (email, activationCode, password) => {
         try {
-            const res = await client.post('/api/auth/activate', { email, password })
+            const res = await client.post('/api/auth/activate', {
+                email,
+                activation_code: activationCode,
+                password
+            })
             return res.data
         } catch (err) {
             return {

@@ -68,6 +68,25 @@ export const verifyAccessToken = (token) =>
 export const verifyRefreshToken = (token) =>
     jwt.verify(token, REFRESH_SECRET, { issuer: ISSUER, audience: 'refresh' });
 
+export const WS_TICKET_TTL_SECONDS = 60;
+
+const wsTicketSecret = () => process.env.WS_TICKET_SECRET || '';
+
+/** Không chặn server khởi động: thiếu secret chỉ làm tắt kết nối WebSocket. */
+export const isWsTicketConfigured = () => wsTicketSecret().length >= 32;
+
+/**
+ * Vé kết nối WebSocket — secret riêng để Lambda authorizer không cần giữ
+ * JWT_ACCESS_SECRET, và access token không phải đi trên query string.
+ */
+export const signWsTicket = (teacher) =>
+    jwt.sign({ sub: teacher.teacher_id, role: teacher.role }, wsTicketSecret(), {
+        algorithm: 'HS256',
+        expiresIn: WS_TICKET_TTL_SECONDS,
+        issuer: ISSUER,
+        audience: 'ws'
+    });
+
 /** Refresh token lưu xuống DB dưới dạng SHA-256 để rò rỉ DB không tái sử dụng được. */
 export const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 

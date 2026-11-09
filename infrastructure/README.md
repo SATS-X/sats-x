@@ -187,10 +187,20 @@ cp terraform.tfvars.example terraform.tfvars
 Edit `terraform.tfvars` with your project parameters (class IDs, project prefix, environment).
 
 ### 2. Initialize and Apply
-Generate a high-entropy `backend_service_token` and fetch your current public IP for SSH whitelisting:
+Generate a high-entropy `backend_service_token` and fetch your current public IP for SSH whitelisting.
+
+WebSocket connections require two more secrets. Generate each one once and keep it, because the same values must also be set elsewhere:
+
+| Terraform variable | Must match |
+| --- | --- |
+| `ws_ticket_secret` | `WS_TICKET_SECRET` in the backend environment |
+| `ws_device_token` | `WS_DEVICE_TOKEN` in `iot/lib/secrets/secrets_esp32-cam.h` |
 
 ```bash
 terraform init
+
+export TF_VAR_ws_ticket_secret="<48-byte hex value>"
+export TF_VAR_ws_device_token="<48-byte hex value>"
 
 terraform apply \
   -var="backend_service_token=$(node -e "console.log(require('crypto').randomBytes(48).toString('hex'))")" \

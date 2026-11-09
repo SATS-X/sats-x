@@ -16,6 +16,7 @@ export default function Login() {
     const [mode, setMode] = useState('login') // 'login' | 'activate'
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [activationCode, setActivationCode] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -37,11 +38,12 @@ export default function Login() {
                     showError(res.message || 'Sign in failed', 'Authentication error')
                 }
             } else {
-                const res = await activate(email, password)
+                const res = await activate(email, activationCode, password)
                 if (res.success) {
                     showSuccess('Password created. You can now sign in.', 'Account activated')
                     setMode('login')
                     setPassword('')
+                    setActivationCode('')
                 } else {
                     showError(res.message || 'Activation failed', 'Error')
                 }
@@ -126,7 +128,7 @@ export default function Login() {
                             <p className="mt-1 text-xs text-text-secondary">
                                 {mode === 'login'
                                     ? 'Use your credentials to open the operations workspace.'
-                                    : 'For invited instructors who have not created a password yet.'}
+                                    : 'Enter the one-time activation code from your administrator.'}
                             </p>
                         </div>
 
@@ -144,6 +146,20 @@ export default function Login() {
                                     />
                                 </div>
                             </Field>
+
+                            {mode === 'activate' && (
+                                <Field label="Activation code" required>
+                                    <Input
+                                        type="text"
+                                        required
+                                        autoComplete="one-time-code"
+                                        spellCheck={false}
+                                        value={activationCode}
+                                        onChange={(e) => setActivationCode(e.target.value)}
+                                        className="font-data"
+                                    />
+                                </Field>
+                            )}
 
                             <Field label={mode === 'login' ? 'Password' : 'New password'} required>
                                 <div className="relative">

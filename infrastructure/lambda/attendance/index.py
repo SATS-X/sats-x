@@ -214,6 +214,12 @@ ROUTE_HANDLERS = {
 
 
 def lambda_handler(event, context):
+    # Attendance can only be submitted by a camera, never by a browser session.
+    authorizer = event.get("requestContext", {}).get("authorizer") or {}
+    if authorizer.get("role") != "device":
+        _send_to_client(event, {"status": "error", "message": "Forbidden"})
+        return {"statusCode": 403}
+
     try:
         body = json.loads(event.get("body") or "{}")
     except json.JSONDecodeError:

@@ -27,6 +27,7 @@ COLLECTION_PREFIX = os.environ.get("COLLECTION_PREFIX", "attendance-system")
 UPLOAD_URL_TTL_SECONDS = int(os.environ.get("UPLOAD_URL_TTL_SECONDS", "300"))
 
 SAFE_ID = re.compile(r"^[A-Za-z0-9._-]+$")
+STAFF_ROLES = {"teacher", "admin"}
 
 
 def _get_apigw_client(event):
@@ -302,6 +303,13 @@ def lambda_handler(event, context):
         return {"statusCode": 400}
 
     action = body.get("action", "")
+
+    # Biometric enrollment is limited to signed-in staff; devices cannot use it.
+    authorizer = event.get("requestContext", {}).get("authorizer") or {}
+    if authorizer.get("role") not in STAFF_ROLES:
+        _send_error(event, action or "unknown", "Forbidden")
+        return {"statusCode": 403}
+
     handler = ROUTE_HANDLERS.get(action)
 
     if not handler:

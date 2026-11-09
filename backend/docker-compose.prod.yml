@@ -39,6 +39,7 @@ services:
       # thời khoá biểu, ESP32-CAM không có class_id nên không bao giờ gửi ảnh
       # điểm danh đi. Giá trị phải trùng backend_service_token bên Terraform.
       SERVICE_TOKEN: ${SERVICE_TOKEN}
+      WS_TICKET_SECRET: ${WS_TICKET_SECRET}
     ports:
       - '4000:4000'
 

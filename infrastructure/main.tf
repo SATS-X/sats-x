@@ -38,6 +38,24 @@ locals {
   }
 }
 
+module "lambda_ws_authorizer" {
+  source = "./modules/lambda-function"
+
+  function_name      = "${local.name_prefix}-ws-authorizer"
+  description        = "Authorizes WebSocket connections from the console and ESP32-CAM"
+  source_dir         = "${path.module}/lambda/ws_authorizer"
+  runtime            = var.lambda_runtime
+  timeout            = 5
+  memory_size        = 128
+  log_retention_days = var.lambda_log_retention_days
+
+  environment_variables = {
+    WS_TICKET_SECRET = var.ws_ticket_secret
+    WS_DEVICE_TOKEN  = var.ws_device_token
+    LOG_LEVEL        = var.environment == "prod" ? "INFO" : "DEBUG"
+  }
+}
+
 module "lambda_connection" {
   source = "./modules/lambda-function"
 
@@ -168,6 +186,11 @@ module "websocket_api" {
   throttle_rate_limit  = var.api_throttle_rate_limit
   throttle_burst_limit = var.api_throttle_burst_limit
   log_retention_days   = var.lambda_log_retention_days
+
+  connect_authorizer = {
+    lambda_invoke_arn    = module.lambda_ws_authorizer.invoke_arn
+    lambda_function_name = module.lambda_ws_authorizer.function_name
+  }
 
   routes = {
     "$connect" = {

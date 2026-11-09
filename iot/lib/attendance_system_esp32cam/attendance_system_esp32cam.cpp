@@ -6,6 +6,10 @@
 #include "mqtt.h"
 #include "attendance_system.h"
 
+#ifndef WS_DEVICE_TOKEN
+#error "Define WS_DEVICE_TOKEN in lib/secrets/secrets_esp32-cam.h (must match ws_device_token in Terraform)"
+#endif
+
 // URL này lấy từ `terraform output websocket_url` (infrastructure) — đổi
 // mỗi lần API Gateway được tạo lại (destroy/apply lại sẽ sinh API ID mới).
 const char* ws_url = "wss://7i91rxj536.execute-api.ap-southeast-1.amazonaws.com/production";
@@ -16,7 +20,7 @@ void attendanceSystemInit() {
     wifiConnect();
     initTime();
     websocketInit();
-    websocketConnect(ws_url);
+    websocketConnect((String(ws_url) + "?token=" + WS_DEVICE_TOKEN).c_str());
     Serial.println("Connecting to AWS IoT Core...");
     if (connectToAWSIoTCore_ESP32CAM()) {
         Serial.println("Subscribing to MQTT topics...");

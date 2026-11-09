@@ -46,6 +46,15 @@ def _send_to_client(event, payload):
 
 
 def lambda_handler(event, context):
+    authorizer = event.get("requestContext", {}).get("authorizer") or {}
+    if authorizer.get("role") not in ("teacher", "admin"):
+        _send_to_client(event, {
+            "status": "error",
+            "action": "triggerCapture",
+            "message": "Forbidden",
+        })
+        return {"statusCode": 403}
+
     if not iot_data:
         _send_to_client(event, {
             "status": "error",

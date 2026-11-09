@@ -61,6 +61,11 @@ def _fetch_schedule(day, month, year):
 
 
 def lambda_handler(event, context):
+    authorizer = event.get("requestContext", {}).get("authorizer") or {}
+    if authorizer.get("role") != "device":
+        _send_to_client(event, {"status": "error", "message": "Forbidden"})
+        return {"statusCode": 403}
+
     try:
         body = json.loads(event.get("body") or "{}")
     except json.JSONDecodeError:

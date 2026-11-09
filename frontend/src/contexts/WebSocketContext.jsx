@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useToast } from './ToastContext'
+import { useAuth } from './AuthContext'
+import client from '../api/client'
 import { WS_URL } from '../config/api'
 
 const WebSocketContext = createContext(null)
@@ -42,7 +44,11 @@ export const WebSocketProvider = ({ children }) => {
     const reconnectAttemptRef = useRef(0)
     const connectRef = useRef(null)
 
+    // Tăng mỗi lần connect/disconnect, để lần lấy vé đang chờ biết mình đã lỗi thời.
+    const connectAttemptRef = useRef(0)
+
     const { showError, showSuccess, showInfo } = useToast()
+    const { isAuthenticated } = useAuth()
 
     const cleanup = useCallback(() => {
         if (reconnectTimeoutRef.current) {
@@ -55,16 +61,49 @@ export const WebSocketProvider = ({ children }) => {
         }
     }, [])
 
+    const scheduleReconnect = useCallback(() => {
+        const timeout = Math.min(1000 * Math.pow(1.5, reconnectAttemptRef.current), 15000)
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectTimeoutRef.current = null
+            reconnectAttemptRef.current += 1
+            setReconnectAttempt(reconnectAttemptRef.current)
+            connectRef.current?.()
+        }, timeout)
+    }, [])
+
     // Connect to AWS WebSocket API Gateway
-    const connect = useCallback(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
+    const connect = useCallback(async () => {
+        const state = wsRef.current?.readyState
+        if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
             return
         }
 
+        connectAttemptRef.current += 1
+        const attempt = connectAttemptRef.current
         setConnectionStatus('connecting')
 
+        // Vé chỉ sống 60 giây nên mỗi lần kết nối lại phải xin vé mới.
+        let ticket = null
         try {
-            const ws = new WebSocket(WS_URL)
+            const res = await client.post('/api/auth/ws-ticket')
+            ticket = res.data?.ticket
+        } catch (err) {
+            console.warn('Could not get a WebSocket ticket:', err?.response?.data?.message || err.message)
+        }
+
+        if (attempt !== connectAttemptRef.current) {
+            return
+        }
+
+        if (!ticket) {
+            setConnectionStatus('error')
+            scheduleReconnect()
+            return
+        }
+
+        try {
+            const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(ticket)}`)
 
             ws.onopen = () => {
                 setIsConnected(true)
@@ -142,6 +181,11 @@ export const WebSocketProvider = ({ children }) => {
             }
 
             ws.onclose = (event) => {
+                // Socket đã bị thay thế hoặc chủ động đóng (đăng xuất) thì không kết nối lại.
+                if (wsRef.current !== ws) {
+                    return
+                }
+
                 setIsConnected(false)
                 setConnectionStatus('disconnected')
                 cleanup()
@@ -158,12 +202,7 @@ export const WebSocketProvider = ({ children }) => {
 
                 // Auto reconnect with exponential backoff if not cleanly closed
                 if (event.code !== 1000) {
-                    const timeout = Math.min(1000 * Math.pow(1.5, reconnectAttemptRef.current), 15000)
-                    reconnectTimeoutRef.current = setTimeout(() => {
-                        reconnectAttemptRef.current += 1
-                        setReconnectAttempt(reconnectAttemptRef.current)
-                        connectRef.current?.()
-                    }, timeout)
+                    scheduleReconnect()
                 }
             }
 
@@ -172,15 +211,17 @@ export const WebSocketProvider = ({ children }) => {
             setConnectionStatus('error')
             showError('Could not establish an AWS WebSocket connection', 'Error')
         }
-    }, [showError, showSuccess, showInfo, cleanup])
+    }, [showError, showSuccess, showInfo, cleanup, scheduleReconnect])
 
     connectRef.current = connect
 
     const disconnect = useCallback(() => {
+        connectAttemptRef.current += 1
         cleanup()
         if (wsRef.current) {
-            wsRef.current.close(1000, 'Client disconnect')
+            const ws = wsRef.current
             wsRef.current = null
+            ws.close(1000, 'Client disconnect')
         }
         setIsConnected(false)
         setConnectionStatus('disconnected')
@@ -288,11 +329,16 @@ export const WebSocketProvider = ({ children }) => {
         [subscribe, sendMessage]
     )
 
+    // API Gateway từ chối kết nối không có vé, nên chỉ kết nối khi đã đăng nhập.
     useEffect(() => {
+        if (!isAuthenticated) {
+            return undefined
+        }
+
         connect()
         return () => disconnect()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [isAuthenticated])
 
     const value = {
         isConnected,
