@@ -10,7 +10,8 @@ const SIZES = {
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
-    xl: 'max-w-2xl'
+    xl: 'max-w-2xl',
+    wide: 'max-w-5xl'
 }
 
 const Modal = ({ isOpen, onClose, title, description, size = 'md', children, footer }) => (
@@ -48,7 +49,7 @@ Modal.propTypes = {
     onClose: PropTypes.func.isRequired,
     title: PropTypes.node.isRequired,
     description: PropTypes.node,
-    size: PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
+    size: PropTypes.oneOf(['sm', 'md', 'lg', 'xl', 'wide']),
     children: PropTypes.node,
     footer: PropTypes.node
 }

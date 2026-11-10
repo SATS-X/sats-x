@@ -304,6 +304,7 @@ export default function AddFaceModal({
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
+            size="wide"
             title={withStudentRecord ? 'Add student and register Face ID' : 'Register student face'}
             footer={
                 <>
@@ -316,122 +317,123 @@ export default function AddFaceModal({
                 </>
             }
         >
-            <form id="add-face-form" onSubmit={handleSubmit} className="space-y-4">
-                <Field label={IS_LOCAL ? 'Class' : 'Class / collection'}>
-                    <Select required value={classId} onChange={(e) => setClassId(e.target.value)} disabled={isSubmitting} className="h-10">
-                        {classes.length === 0 && <option value="">Create a class first</option>}
-                        {classes.map((c) => (
-                            <option key={c.class_id} value={c.class_id}>
-                                {c.class_id} — {c.class_name}
-                            </option>
-                        ))}
-                    </Select>
-                </Field>
+            <form id="add-face-form" onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+                <div className="space-y-4">
+                    <Field label={IS_LOCAL ? 'Class' : 'Class / collection'}>
+                        <Select required value={classId} onChange={(e) => setClassId(e.target.value)} disabled={isSubmitting} className="h-10">
+                            {classes.length === 0 && <option value="">Create a class first</option>}
+                            {classes.map((c) => (
+                                <option key={c.class_id} value={c.class_id}>
+                                    {c.class_id} — {c.class_name}
+                                </option>
+                            ))}
+                        </Select>
+                    </Field>
 
-                <Field label="Student ID" required>
-                    <Input
-                        required
-                        value={studentId}
-                        onChange={(e) => setStudentId(e.target.value)}
-                        placeholder="Example: STU-2026-001"
-                        className="font-data"
-                        disabled={isSubmitting}
-                    />
-                </Field>
-
-                {withStudentRecord && (
-                    <>
-                        <Field label="Full name" required>
-                            <Input
-                                required
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                placeholder="Example: Alex Morgan"
-                                disabled={isSubmitting}
-                            />
-                        </Field>
-
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <Field label="Email">
-                                <Input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="student@organization.edu"
-                                    disabled={isSubmitting}
-                                />
-                            </Field>
-                            <Field label="Phone number">
-                                <Input
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="09xxxxxxxx"
-                                    className="font-data"
-                                    disabled={isSubmitting}
-                                />
-                            </Field>
-                        </div>
-                    </>
-                )}
-
-                <Field label="Front-facing photo" required>
-                    {!imagePreview && (
-                        <Segmented
-                            label="Photo source"
-                            className="mb-2.5"
-                            value={photoSource}
-                            onChange={setPhotoSource}
-                            options={[
-                                { value: 'camera', label: 'Take a photo now' },
-                                { value: 'upload', label: 'Upload a file' }
-                            ]}
+                    <Field label="Student ID" required>
+                        <Input
+                            required
+                            value={studentId}
+                            onChange={(e) => setStudentId(e.target.value)}
+                            placeholder="Example: STU-2026-001"
+                            className="font-data"
+                            disabled={isSubmitting}
                         />
-                    )}
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/jpeg,image/png" className="hidden" />
+                    </Field>
 
-                    {imagePreview ? (
-                        <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-input p-3">
-                            <div className="flex items-center gap-3">
-                                <img src={imagePreview} alt="Selected face preview" className="h-14 w-14 rounded-card border border-border object-cover" />
-                                <div>
-                                    <div className="text-xs font-medium text-text">Image selected</div>
-                                    <div className="text-[11px] text-present">{IS_LOCAL ? 'Ready to save' : 'Ready for AI indexing'}</div>
+                    {withStudentRecord && (
+                        <>
+                            <Field label="Full name" required>
+                                <Input
+                                    required
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="Example: Alex Morgan"
+                                    disabled={isSubmitting}
+                                />
+                            </Field>
+
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <Field label="Email">
+                                    <Input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="student@organization.edu"
+                                        disabled={isSubmitting}
+                                    />
+                                </Field>
+                                <Field label="Phone number">
+                                    <Input
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="09xxxxxxxx"
+                                        className="font-data"
+                                        disabled={isSubmitting}
+                                    />
+                                </Field>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div className="space-y-3">
+                    <Field label="Front-facing photo" required>
+                        {!imagePreview && (
+                            <Segmented
+                                label="Photo source"
+                                className="mb-2.5"
+                                value={photoSource}
+                                onChange={setPhotoSource}
+                                options={[
+                                    { value: 'camera', label: 'Take a photo now' },
+                                    { value: 'upload', label: 'Upload a file' }
+                                ]}
+                            />
+                        )}
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/jpeg,image/png" className="hidden" />
+
+                        {imagePreview ? (
+                            <div className="space-y-2.5">
+                                <img src={imagePreview} alt="Selected face preview" className="aspect-[4/3] w-full rounded-xl border border-border bg-black object-contain" />
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="text-[11px] text-present">{IS_LOCAL ? 'Photo ready to save' : 'Photo ready for AI indexing'}</div>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        disabled={isSubmitting}
+                                        onClick={() => {
+                                            setPreviewFrom(null)
+                                            setImageFile(null)
+                                        }}
+                                    >
+                                        {photoSource === 'camera' ? 'Retake' : 'Choose another'}
+                                    </Button>
                                 </div>
                             </div>
-                            <Button
+                        ) : photoSource === 'camera' ? (
+                            <CameraCapture onCapture={handleCapture} disabled={isSubmitting} aspect="aspect-[4/3]" />
+                        ) : (
+                            <button
                                 type="button"
-                                variant="secondary"
-                                size="sm"
-                                disabled={isSubmitting}
-                                onClick={() => {
-                                    setPreviewFrom(null)
-                                    setImageFile(null)
-                                }}
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex aspect-[4/3] w-full flex-col items-center justify-center rounded-xl border border-dashed border-border-strong bg-input p-6 text-center transition-colors hover:border-accent/60 hover:bg-accent/[0.04]"
                             >
-                                {photoSource === 'camera' ? 'Retake' : 'Choose another'}
-                            </Button>
-                        </div>
-                    ) : photoSource === 'camera' ? (
-                        <CameraCapture onCapture={handleCapture} disabled={isSubmitting} />
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-full rounded-xl border border-dashed border-border-strong bg-input p-6 text-center transition-colors hover:border-accent/60 hover:bg-accent/[0.04]"
-                        >
-                            <LuCloudUpload className="mx-auto h-5 w-5 text-accent" aria-hidden="true" />
-                            <div className="mt-2 text-xs font-medium text-text">Choose an image or drop it here</div>
-                            <div className="mt-0.5 text-[11px] text-text-tertiary">JPG or PNG · up to 10 MB · clear face and even light</div>
-                        </button>
-                    )}
-                </Field>
+                                <LuCloudUpload className="mx-auto h-5 w-5 text-accent" aria-hidden="true" />
+                                <div className="mt-2 text-xs font-medium text-text">Choose an image or drop it here</div>
+                                <div className="mt-0.5 text-[11px] text-text-tertiary">JPG or PNG · up to 10 MB · clear face and even light</div>
+                            </button>
+                        )}
+                    </Field>
 
-                {stage && (
-                    <div role="status" className="flex items-center gap-2 rounded-lg border border-border bg-input px-3 py-2 text-[11px] text-text-secondary">
-                        <Spinner size="sm" />
-                        <span>{STAGE_LABEL[stage]}</span>
-                    </div>
-                )}
+                    {stage && (
+                        <div role="status" className="flex items-center gap-2 rounded-lg border border-border bg-input px-3 py-2 text-[11px] text-text-secondary">
+                            <Spinner size="sm" />
+                            <span>{STAGE_LABEL[stage]}</span>
+                        </div>
+                    )}
+                </div>
             </form>
         </Modal>
     )

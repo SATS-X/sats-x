@@ -8,7 +8,7 @@ import { Button } from '../ui'
 const COUNTDOWN_SECONDS = 3
 
 /** Khung chụp nhỏ gọn để nhúng vào form: đếm ngược rồi trả ảnh JPEG (data URL) qua onCapture. */
-export default function CameraCapture({ onCapture, disabled = false }) {
+export default function CameraCapture({ onCapture, disabled = false, aspect = 'aspect-video' }) {
     const camera = useCamera()
     const [countdown, setCountdown] = useState(null)
     const timerRef = useRef(null)
@@ -33,7 +33,7 @@ export default function CameraCapture({ onCapture, disabled = false }) {
 
     return (
         <div className="space-y-2.5">
-            <CameraView camera={camera} className="aspect-video w-full">
+            <CameraView camera={camera} className={`${aspect} w-full`}>
                 {camera.status === 'ready' && (
                     <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center">
                         <div className="h-[72%] aspect-[3/4] rounded-[45%] border-2 border-dashed border-white/50" />
@@ -60,5 +60,6 @@ export default function CameraCapture({ onCapture, disabled = false }) {
 
 CameraCapture.propTypes = {
     onCapture: PropTypes.func.isRequired,
-    disabled: PropTypes.bool
+    disabled: PropTypes.bool,
+    aspect: PropTypes.string
 }
