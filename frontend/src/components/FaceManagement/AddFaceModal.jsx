@@ -12,7 +12,13 @@ import {
 import { createStudent } from '../../api/student/createStudent'
 import { getClasses } from '../../api/class/getClasses'
 import { compressImage, prepareImageForUpload } from '../../lib/image'
-import { Button, Field, Input, Modal, Select, Spinner } from '../ui'
+import { addFace } from '../../api/faces/faceApi'
+import { FACE_PROVIDER } from '../../config/api'
+import CameraCapture from '../camera/CameraCapture'
+import { fileToJpeg } from '../camera/useCamera'
+import { Button, Field, Input, Modal, Segmented, Select, Spinner } from '../ui'
+
+const IS_LOCAL = FACE_PROVIDER === 'local'
 
 // Ảnh đi qua S3 nên không bị bó vào giới hạn frame của WebSocket. Ngưỡng để
 // rộng rãi để ảnh JPEG chụp bằng điện thoại đi thẳng lên S3 không qua canvas —
@@ -28,7 +34,13 @@ const STAGE_LABEL = {
     compressing: 'Optimizing image…',
     uploading: 'Uploading image to S3…',
     indexing: 'Indexing with AWS Rekognition…',
-    fallback: 'S3 unavailable. Sending a compressed image over WebSocket…'
+    fallback: 'S3 unavailable. Sending a compressed image over WebSocket…',
+    analyzing: 'Checking the face on this computer…'
+}
+
+const dataUrlToFile = async (dataUrl) => {
+    const blob = await (await fetch(dataUrl)).blob()
+    return new File([blob], 'camera.jpg', { type: 'image/jpeg' })
 }
 
 export default function AddFaceModal({
@@ -51,6 +63,7 @@ export default function AddFaceModal({
     const [imagePreview, setImagePreview] = useState(null)
     const [imageFile, setImageFile] = useState(null)
     const [stage, setStage] = useState(null)
+    const [photoSource, setPhotoSource] = useState('camera')
     const fileInputRef = useRef(null)
     const mountedRef = useRef(true)
     const previewUrlRef = useRef(null)
@@ -64,6 +77,22 @@ export default function AddFaceModal({
     }
 
     const isSubmitting = stage !== null
+
+    const handleCapture = async (dataUrl) => {
+        const file = await dataUrlToFile(dataUrl)
+        setPreviewFrom(file)
+        setImageFile(file)
+    }
+
+    /** Chế độ cục bộ: gửi ảnh JPEG đã thu nhỏ thẳng tới backend, không qua AWS. */
+    const saveLocally = async (trimmedStudentId) => {
+        setStage('analyzing')
+        try {
+            return await addFace(trimmedStudentId, await fileToJpeg(imageFile))
+        } catch (err) {
+            throw new Error(err.response?.data?.message || err.message || 'Could not save this face')
+        }
+    }
 
     useEffect(() => {
         if (!isOpen) return undefined
@@ -220,7 +249,7 @@ export default function AddFaceModal({
             showError('Enter the student’s full name', 'Missing information')
             return
         }
-        if (!isConnected) {
+        if (!IS_LOCAL && !isConnected) {
             showError('WebSocket is not connected to AWS Gateway', 'Connection unavailable')
             return
         }
@@ -232,7 +261,7 @@ export default function AddFaceModal({
                 await createStudentRecord(trimmedStudentId)
             }
 
-            let result = await uploadViaS3(trimmedStudentId)
+            let result = IS_LOCAL ? await saveLocally(trimmedStudentId) : await uploadViaS3(trimmedStudentId)
 
             if (result === false) {
                 showInfo('S3 is unavailable. SATS X will send a compressed image over WebSocket.', 'Face registration')
@@ -244,7 +273,7 @@ export default function AddFaceModal({
                 withStudentRecord
                     ? `Student ${trimmedStudentId} added and Face ID registered`
                     : `Face ID registered for student ${trimmedStudentId}`,
-                withStudentRecord ? 'Success' : 'AWS Rekognition'
+                withStudentRecord ? 'Success' : IS_LOCAL ? 'Face saved' : 'AWS Rekognition'
             )
             onAdded?.(result)
             handleClose()
@@ -267,6 +296,7 @@ export default function AddFaceModal({
         setPreviewFrom(null)
         setImageFile(null)
         setStage(null)
+        setPhotoSource('camera')
         onClose()
     }
 
@@ -281,13 +311,13 @@ export default function AddFaceModal({
                         Cancel
                     </Button>
                     <Button type="submit" form="add-face-form" loading={isSubmitting} disabled={!imageFile || !studentId || !classId}>
-                        {withStudentRecord ? 'Add student and index' : 'Save and index'}
+                        {withStudentRecord ? (IS_LOCAL ? 'Add student and save face' : 'Add student and index') : IS_LOCAL ? 'Save face' : 'Save and index'}
                     </Button>
                 </>
             }
         >
             <form id="add-face-form" onSubmit={handleSubmit} className="space-y-4">
-                <Field label="Class / collection">
+                <Field label={IS_LOCAL ? 'Class' : 'Class / collection'}>
                     <Select required value={classId} onChange={(e) => setClassId(e.target.value)} disabled={isSubmitting} className="h-10">
                         {classes.length === 0 && <option value="">Create a class first</option>}
                         {classes.map((c) => (
@@ -345,6 +375,18 @@ export default function AddFaceModal({
                 )}
 
                 <Field label="Front-facing photo" required>
+                    {!imagePreview && (
+                        <Segmented
+                            label="Photo source"
+                            className="mb-2.5"
+                            value={photoSource}
+                            onChange={setPhotoSource}
+                            options={[
+                                { value: 'camera', label: 'Take a photo now' },
+                                { value: 'upload', label: 'Upload a file' }
+                            ]}
+                        />
+                    )}
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/jpeg,image/png" className="hidden" />
 
                     {imagePreview ? (
@@ -353,7 +395,7 @@ export default function AddFaceModal({
                                 <img src={imagePreview} alt="Selected face preview" className="h-14 w-14 rounded-card border border-border object-cover" />
                                 <div>
                                     <div className="text-xs font-medium text-text">Image selected</div>
-                                    <div className="text-[11px] text-present">Ready for AI indexing</div>
+                                    <div className="text-[11px] text-present">{IS_LOCAL ? 'Ready to save' : 'Ready for AI indexing'}</div>
                                 </div>
                             </div>
                             <Button
@@ -366,9 +408,11 @@ export default function AddFaceModal({
                                     setImageFile(null)
                                 }}
                             >
-                                Choose another
+                                {photoSource === 'camera' ? 'Retake' : 'Choose another'}
                             </Button>
                         </div>
+                    ) : photoSource === 'camera' ? (
+                        <CameraCapture onCapture={handleCapture} disabled={isSubmitting} />
                     ) : (
                         <button
                             type="button"
