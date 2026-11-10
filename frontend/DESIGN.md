@@ -32,7 +32,7 @@ The interface follows the ArchFlow visual language and carries the SATS X identi
 
 ## Camera
 
-- `useCamera` and `CameraView` own every webcam surface. The preview is mirrored; captured frames and face boxes are not, and the view flips the box to match.
+- `useCamera` and `CameraView` own every webcam surface. The preview is mirrored, and captured frames are mirrored too, so a saved photo looks exactly like the preview and face boxes need no flipping.
 - Camera errors explain the fix in plain words (permission, no device, busy, insecure origin).
 
 ## Motion

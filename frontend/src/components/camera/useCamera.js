@@ -121,7 +121,11 @@ export default function useCamera({ autoStart = true } = {}) {
         const canvas = document.createElement('canvas')
         canvas.width = Math.round(node.videoWidth * scale)
         canvas.height = Math.round(node.videoHeight * scale)
-        canvas.getContext('2d').drawImage(node, 0, 0, canvas.width, canvas.height)
+        const ctx = canvas.getContext('2d')
+        // Lật như gương để ảnh chụp giống hệt khung xem trước người dùng vừa thấy.
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
+        ctx.drawImage(node, 0, 0, canvas.width, canvas.height)
         return canvas.toDataURL('image/jpeg', JPEG_QUALITY)
     }, [])
 

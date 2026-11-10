@@ -251,7 +251,7 @@ export default function Kiosk() {
                 {step === 'recognize' && match && result?.box && (
                     <div
                         className="pointer-events-none absolute -translate-x-1/2 -translate-y-full pb-2"
-                        style={{ left: `${(1 - result.box.left - result.box.width / 2) * 100}%`, top: `${result.box.top * 100}%` }}
+                        style={{ left: `${(result.box.left + result.box.width / 2) * 100}%`, top: `${result.box.top * 100}%` }}
                     >
                         <span className="whitespace-nowrap rounded-full bg-present px-3 py-1 text-sm font-semibold text-black">{match.nickname}</span>
                     </div>

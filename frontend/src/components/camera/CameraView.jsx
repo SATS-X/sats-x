@@ -4,8 +4,8 @@ import { LuCameraOff, LuLoaderCircle, LuRefreshCw } from 'react-icons/lu'
 import { cameraErrorMessage } from './useCamera'
 
 /**
- * Khung xem trước webcam. Ảnh xem trước được lật như gương cho tự nhiên, còn ảnh
- * chụp gửi lên server thì không lật; khung mặt từ server được lật lại cho khớp.
+ * Khung xem trước webcam, lật như gương cho tự nhiên. Ảnh chụp (useCamera.capture)
+ * cũng được lật y hệt, nên khung mặt server trả về khớp thẳng với khung xem trước.
  */
 export default function CameraView({ camera, box, boxTone = 'neutral', className, children, rounded = 'rounded-xl' }) {
     const { videoRef, status, error, devices, deviceId, start, selectDevice } = camera
@@ -24,7 +24,7 @@ export default function CameraView({ camera, box, boxTone = 'neutral', className
                         boxTone === 'neutral' && 'border-white/80'
                     )}
                     style={{
-                        left: `${(1 - box.left - box.width) * 100}%`,
+                        left: `${box.left * 100}%`,
                         top: `${box.top * 100}%`,
                         width: `${box.width * 100}%`,
                         height: `${box.height * 100}%`
