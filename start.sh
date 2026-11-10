@@ -112,6 +112,12 @@ EOF
         success "Created backend/.env with local development secrets."
     fi
 
+    # Older local files were created before WebSocket tickets existed.
+    if ! grep -q '^WS_TICKET_SECRET=' "$ROOT_DIR/backend/.env"; then
+        printf 'WS_TICKET_SECRET=%s\n' "$(openssl rand -hex 32)" >>"$ROOT_DIR/backend/.env"
+        success "Added WS_TICKET_SECRET to backend/.env."
+    fi
+
     if [[ ! -f "$ROOT_DIR/frontend/.env" ]]; then
         cp "$ROOT_DIR/frontend/.env.example" "$ROOT_DIR/frontend/.env"
         success "Created frontend/.env from the development example."
@@ -190,6 +196,30 @@ install_dependencies() {
         "$ROOT_DIR/liveness/.venv/bin/python" -m pip install --upgrade pip
         "$ROOT_DIR/liveness/.venv/bin/python" -m pip install -r "$ROOT_DIR/liveness/requirements.txt"
     fi
+
+    # Face recognition models for webcam enrollment and the exhibition kiosk.
+    bash "$ROOT_DIR/liveness/scripts/fetch_face_models.sh" || \
+        fail "Could not download the face recognition models. Check the internet connection and run ./start.sh again."
+}
+
+env_value() {
+    grep "^$1=" "$2" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '"'
+}
+
+restart_running_services() {
+    if [[ "${SATS_X_KEEP_RUNNING:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    local name
+    for name in backend frontend liveness; do
+        if is_running "$RUNTIME_DIR/$name.pid"; then
+            # Services started earlier run old code and miss new migrations; restart them.
+            info "Restarting the running services so they pick up the latest code..."
+            "$ROOT_DIR/stop.sh" --keep-database
+            return 0
+        fi
+    done
 }
 
 start_database() {
@@ -252,6 +282,7 @@ main() {
     require_command curl
     require_command openssl
 
+    restart_running_services
     create_local_environment
     install_dependencies
     start_database
@@ -265,6 +296,7 @@ main() {
 
     if [[ "${SATS_X_SKIP_LIVENESS:-0}" != "1" ]]; then
         start_service liveness "$ROOT_DIR/liveness" \
+            env SERVICE_TOKEN="$(env_value SERVICE_TOKEN "$ROOT_DIR/backend/.env")" \
             "$ROOT_DIR/liveness/.venv/bin/python" -m uvicorn app.main:app \
             --host 0.0.0.0 --port 8000
         wait_for_http liveness "$LIVENESS_URL" 120
@@ -275,6 +307,7 @@ main() {
     printf '\n'
     success "SATS X is running."
     printf '  Frontend:       %s\n' "$FRONTEND_URL"
+    printf '  Exhibition:     %s/kiosk (sign in first)\n' "$FRONTEND_URL"
     printf '  Backend API:    http://localhost:4000\n'
     printf '  API docs:       http://localhost:4000/api-docs\n'
     if [[ "${SATS_X_SKIP_LIVENESS:-0}" != "1" ]]; then

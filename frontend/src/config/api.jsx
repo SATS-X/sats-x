@@ -7,9 +7,13 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localho
 // Live AWS WebSocket URL for attendance and face management
 // Lấy từ `terraform output websocket_url` (infrastructure) — đổi mỗi lần
 // API Gateway được tạo lại.
-export const WS_URL =
-    import.meta.env.VITE_WS_URL ||
-    'wss://7i91rxj536.execute-api.ap-southeast-1.amazonaws.com/production'
+// Để trống thì SATS X chạy hoàn toàn cục bộ: không kết nối AWS, khuôn mặt được nhận
+// diện bằng bộ máy OpenCV trên chính máy này (xem liveness/app/faces.py).
+export const WS_URL = import.meta.env.VITE_WS_URL || ''
+export const CLOUD_ENABLED = Boolean(WS_URL)
+
+// 'local' lưu khuôn mặt trong Postgres; 'aws' dùng Rekognition qua WebSocket API.
+export const FACE_PROVIDER = import.meta.env.VITE_FACE_PROVIDER || (CLOUD_ENABLED ? 'aws' : 'local')
 
 export const WS_ATTENDANCE_URL = WS_URL
 export const WS_FACE_MANAGEMENT_URL = WS_URL
@@ -21,6 +25,8 @@ export const AWS_S3_BUCKET = import.meta.env.VITE_AWS_S3_BUCKET || 'attendance-s
 export default {
     API_BASE_URL,
     WS_URL,
+    CLOUD_ENABLED,
+    FACE_PROVIDER,
     WS_ATTENDANCE_URL,
     WS_FACE_MANAGEMENT_URL,
     AWS_REGION,

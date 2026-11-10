@@ -9,3 +9,8 @@ export const getAllClasses = async () => {
 export default {
     getAllClasses
 }
+
+export const getClassById = async (classId) => {
+    const res = await client.get(`/api/class/${encodeURIComponent(classId)}`)
+    return res.data
+}

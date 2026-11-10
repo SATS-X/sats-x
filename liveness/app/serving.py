@@ -20,10 +20,14 @@ from fastapi import FastAPI, Header, HTTPException
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
+from app.faces import build_router
+
 try:
     from tflite_runtime.interpreter import Interpreter
-except ImportError:
-    from tensorflow.lite import Interpreter
+except ImportError:  # local development with full TensorFlow
+    import tensorflow as tf
+
+    Interpreter = tf.lite.Interpreter
 
 logger = logging.getLogger("liveness")
 
@@ -97,6 +101,13 @@ def predict_real_score(image: Image.Image) -> float:
         interpreter.set_tensor(input_details["index"], batch)
         interpreter.invoke()
         return float(interpreter.get_tensor(output_details["index"])[0][0])
+
+
+def _face_liveness(face_bgr: np.ndarray) -> float:
+    return predict_real_score(Image.fromarray(face_bgr[:, :, ::-1]))
+
+
+app.include_router(build_router(_face_liveness))
 
 
 @app.get("/health")

@@ -20,7 +20,8 @@ The interface follows the ArchFlow visual language and carries the SATS X identi
 
 ## Layout
 
-- App pages use the sticky glass `Header` with horizontal navigation and a 1200px content column. Forms and settings narrow to 880–960px.
+- App pages use the left `Sidebar`: navigation grouped by task (Overview, Attendance, Academic, Recognition), collapsible to an icon rail on desktop and a drawer below `lg`. Content sits in a 1200px column. Forms and settings narrow to 880–960px.
+- The exhibition kiosk (`/kiosk`) is the one full-screen surface: dark, camera fills the screen, large touch targets, and its own Vietnamese/English copy.
 - Marketing and sign-in surfaces use `src/styles/marketing.module.css`.
 
 ## Signature surfaces
@@ -28,6 +29,11 @@ The interface follows the ArchFlow visual language and carries the SATS X identi
 - **Canvas band:** `.canvas-band` adds a fine grid and teal light to the one main block on a page, such as the session hero. Use it once per page, not on every card.
 - **Roll sheet:** the Live page treats the session roster as the page. A mono ink stamp (`On time`, `Late`, `Absent`) marks each arrival, and pending rows stay quiet.
 - **Status lamp:** a pulsing `animate-lamp` dot means a camera is online. Reserve it for live hardware state.
+
+## Camera
+
+- `useCamera` and `CameraView` own every webcam surface. The preview is mirrored; captured frames and face boxes are not, and the view flips the box to match.
+- Camera errors explain the fix in plain words (permission, no device, busy, insecure origin).
 
 ## Motion
 

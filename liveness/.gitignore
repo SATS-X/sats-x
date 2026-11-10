@@ -57,3 +57,6 @@ screenshots/
 
 # mypy
 .mypy_cache/
+
+# Downloaded by scripts/fetch_face_models.sh
+models/faces/

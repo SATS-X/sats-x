@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { useToast } from './ToastContext'
 import { useAuth } from './AuthContext'
 import client from '../api/client'
-import { WS_URL } from '../config/api'
+import { CLOUD_ENABLED, WS_URL } from '../config/api'
 
 const WebSocketContext = createContext(null)
 
@@ -75,6 +75,7 @@ export const WebSocketProvider = ({ children }) => {
 
     // Connect to AWS WebSocket API Gateway
     const connect = useCallback(async () => {
+        if (!CLOUD_ENABLED) return
         const state = wsRef.current?.readyState
         if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
             return
@@ -327,7 +328,7 @@ export const WebSocketProvider = ({ children }) => {
 
     // API Gateway từ chối kết nối không có vé, nên chỉ kết nối khi đã đăng nhập.
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (!isAuthenticated || !CLOUD_ENABLED) {
             return undefined
         }
 
@@ -337,6 +338,7 @@ export const WebSocketProvider = ({ children }) => {
     }, [isAuthenticated])
 
     const value = {
+        isLocalMode: !CLOUD_ENABLED,
         isConnected,
         connectionStatus,
         lastMessage,

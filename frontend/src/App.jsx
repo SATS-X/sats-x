@@ -23,6 +23,10 @@ import Attendance from './pages/Attendance'
 import Schedule from './pages/Schedule'
 import Live from './pages/Live'
 import Devices from './pages/Devices'
+import CheckIn from './pages/CheckIn'
+import ClassDetail from './pages/ClassDetail'
+import Kiosk from './pages/Kiosk'
+import NotFound from './pages/NotFound'
 
 // Route Guard
 function RequireAuth({ children }) {
@@ -62,120 +66,41 @@ export default function App() {
                             <Route path="/" element={<Home />} />
                             <Route path="/login" element={<Login />} />
 
-                            {/* Protected Dashboard Routes */}
+                            {/* Mọi trang quản lý dùng chung một layout có sidebar. */}
                             <Route
-                                path="/dashboard"
                                 element={
                                     <RequireAuth>
                                         <Layout />
                                     </RequireAuth>
                                 }
                             >
-                                <Route index element={<Dashboard />} />
-                                <Route path="profile" element={<Profile />} />
+                                <Route path="/dashboard" element={<Dashboard />} />
+                                <Route path="/dashboard/profile" element={<Profile />} />
+                                <Route path="/live" element={<Live />} />
+                                <Route path="/check-in" element={<CheckIn />} />
+                                <Route path="/devices" element={<Devices />} />
+                                <Route path="/classes" element={<Classes />} />
+                                <Route path="/classes/:classId" element={<ClassDetail />} />
+                                <Route path="/students" element={<Students />} />
+                                <Route path="/subjects" element={<Subject />} />
+                                <Route path="/attendance" element={<Attendance />} />
+                                <Route path="/schedule" element={<Schedule />} />
+                                <Route path="/face-management" element={<FaceManagement />} />
+                                <Route path="/settings" element={<Settings />} />
                             </Route>
 
+                            {/* Kiosk triển lãm chiếm toàn màn hình, chạy dưới tài khoản nhân viên. */}
                             <Route
-                                path="/live"
+                                path="/kiosk"
                                 element={
                                     <RequireAuth>
-                                        <Layout />
+                                        <Kiosk />
                                     </RequireAuth>
                                 }
-                            >
-                                <Route index element={<Live />} />
-                            </Route>
+                            />
 
-                            <Route
-                                path="/devices"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<Devices />} />
-                            </Route>
-
-                            <Route
-                                path="/classes"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<Classes />} />
-                            </Route>
-
-                            <Route
-                                path="/students"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<Students />} />
-                            </Route>
-
-                            <Route
-                                path="/subjects"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<Subject />} />
-                            </Route>
-
-                            <Route
-                                path="/attendance"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<Attendance />} />
-                            </Route>
-
-                            <Route
-                                path="/schedule"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<Schedule />} />
-                            </Route>
-
-                            <Route
-                                path="/face-management"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<FaceManagement />} />
-                            </Route>
-
-                            <Route
-                                path="/settings"
-                                element={
-                                    <RequireAuth>
-                                        <Layout />
-                                    </RequireAuth>
-                                }
-                            >
-                                <Route index element={<Settings />} />
-                            </Route>
-
-                            {/* Fallback */}
-                            <Route path="*" element={<Navigate to="/" replace />} />
+                            <Route path="/profile" element={<Navigate to="/dashboard/profile" replace />} />
+                            <Route path="*" element={<NotFound />} />
                         </Routes>
                     </WebSocketProvider>
                 </AuthProvider>

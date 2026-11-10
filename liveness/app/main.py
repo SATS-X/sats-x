@@ -19,6 +19,11 @@ import cv2
 import tensorflow as tf
 from pathlib import Path
 
+try:
+    from app.faces import build_router
+except ImportError:  # started from inside app/
+    from faces import build_router
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -75,6 +80,16 @@ def load_liveness_model():
         logger.error(f"Failed to load model: {str(e)}")
         logger.error(traceback.format_exc())
         return None
+
+
+def _face_liveness(face_bgr: np.ndarray) -> float:
+    result = predict_liveness(face_bgr)
+    if result.get("score") is None:
+        raise RuntimeError(result.get("error", "Liveness model unavailable"))
+    return result["score"]
+
+
+app.include_router(build_router(_face_liveness))
 
 
 @app.on_event("startup")

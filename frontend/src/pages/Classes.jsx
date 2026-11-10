@@ -133,7 +133,11 @@ export default function Classes() {
                             <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <h3 className="font-data truncate text-sm font-semibold text-text">{cls.class_id}</h3>
+                                        <h3 className="font-data truncate text-sm font-semibold text-text">
+                                            <Link to={`/classes/${encodeURIComponent(cls.class_id)}`} className="hover:text-accent hover:underline">
+                                                {cls.class_id}
+                                            </Link>
+                                        </h3>
                                         <StatusChip variant={cls.status === 'active' || !cls.status ? 'active' : 'neutral'}>{cls.status || 'active'}</StatusChip>
                                     </div>
                                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">

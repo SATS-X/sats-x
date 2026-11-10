@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { LuCopy, LuPlay, LuRefreshCw, LuTerminal } from 'react-icons/lu'
 import { useWebSocket } from '../contexts/WebSocketContext'
+import { getFaceEngineStatus, getVisitors } from '../api/faces/faceApi'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useToast } from '../contexts/ToastContext'
@@ -22,7 +24,7 @@ const THEME_OPTIONS = [
 export default function Settings() {
     const { t } = useLanguage()
     const { theme, setTheme } = useTheme()
-    const { isConnected, connectionStatus, connect, disconnect, ping, latency, sendMessage, messageHistory } = useWebSocket()
+    const { isLocalMode, isConnected, connectionStatus, connect, disconnect, ping, latency, sendMessage, messageHistory } = useWebSocket()
     const { showSuccess, showInfo } = useToast()
 
     const [customPayload, setCustomPayload] = useState(QUICK_PAYLOADS.getCollectionInfo)
@@ -49,6 +51,9 @@ export default function Settings() {
         <div className="mx-auto max-w-[960px] space-y-6">
             <PageHeader eyebrow="System" title={t('systemSettings')} description={t('systemSettingsDesc')} />
 
+            {isLocalMode ? (
+                <LocalEngineCard />
+            ) : (
             <Card padded={false}>
                 <CardHeader
                     title="AWS WebSocket Gateway diagnostics"
@@ -139,6 +144,7 @@ export default function Settings() {
                     )}
                 </div>
             </Card>
+            )}
 
             <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
                 <Card padded={false}>
@@ -173,4 +179,47 @@ function InfoTile({ label, children }) {
 InfoTile.propTypes = {
     label: PropTypes.string.isRequired,
     children: PropTypes.node
+}
+
+function LocalEngineCard() {
+    const [status, setStatus] = useState(null)
+    const [visitors, setVisitors] = useState(null)
+
+    useEffect(() => {
+        getFaceEngineStatus().then(setStatus).catch(() => setStatus({ online: false, models: false }))
+        getVisitors()
+            .then((res) => setVisitors(res))
+            .catch(() => {})
+    }, [])
+
+    const ready = status?.online && status?.models
+    return (
+        <Card padded={false}>
+            <CardHeader
+                title="Local recognition engine"
+                description="SATS X is running without AWS. Faces are matched on this computer with OpenCV YuNet and SFace."
+                action={
+                    <Button as={Link} to="/kiosk" size="sm">
+                        Open exhibition kiosk
+                    </Button>
+                }
+            />
+            <div className="space-y-4 p-5">
+                <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
+                    <InfoTile label="Engine">
+                        <span className="flex items-center gap-2">
+                            <span className={`h-1.5 w-1.5 rounded-full ${ready ? 'bg-present' : 'bg-absent'}`} aria-hidden="true" />
+                            <span className={ready ? 'text-present' : 'text-absent'}>{status === null ? 'Checking…' : ready ? 'Ready' : status.online ? 'Models missing' : 'Not running'}</span>
+                        </span>
+                    </InfoTile>
+                    <InfoTile label="Student face photos">{status?.templates ?? '—'}</InfoTile>
+                    <InfoTile label="Kiosk visitors">{visitors ? `${visitors.count} · auto-delete ${visitors.ttl_minutes} min` : '—'}</InfoTile>
+                </div>
+                <p className="text-xs leading-5 text-text-tertiary">
+                    To use AWS Rekognition and ESP32-CAM devices instead, set <code className="font-data">VITE_WS_URL</code> in <code className="font-data">frontend/.env</code> to the
+                    deployed WebSocket URL and restart with <code className="font-data">./start.sh</code>.
+                </p>
+            </div>
+        </Card>
+    )
 }

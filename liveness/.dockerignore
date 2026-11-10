@@ -1,4 +1,7 @@
 *
+!app/__init__.py
 !app/serving.py
+!app/faces.py
+!scripts/fetch_face_models.sh
 !models/liveness-detection-model.tflite
 !requirements-serving.txt

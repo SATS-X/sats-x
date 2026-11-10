@@ -7,6 +7,8 @@ import termRouter from './term.js';
 import devicesRouter from './devices.js';
 import authRouter from './auth.js';
 import deviceRouter from './device.js';
+import facesRouter from './faces.js';
+import kioskRouter from './kiosk.js';
 import { requireAuth } from '../app/middlewares/authMiddleware.js';
 
 export default function routes(app) {
@@ -21,6 +23,9 @@ export default function routes(app) {
     app.use('/api/class', requireAuth, classRouter);
     app.use('/api/term', requireAuth, termRouter);
     app.use('/api/devices', requireAuth, devicesRouter);
+    app.use('/api/faces', requireAuth, facesRouter);
+    // Máy kiosk triển lãm chạy dưới tài khoản giáo viên đã đăng nhập.
+    app.use('/api/kiosk', requireAuth, kioskRouter);
 
     // Lambda (ESP32-CAM/ESP32) gọi vào đây — tự xác thực bằng SERVICE_TOKEN
     // riêng trong deviceRouter, không dùng requireAuth (JWT giáo viên).

@@ -40,6 +40,8 @@ services:
       # điểm danh đi. Giá trị phải trùng backend_service_token bên Terraform.
       SERVICE_TOKEN: ${SERVICE_TOKEN}
       WS_TICKET_SECRET: ${WS_TICKET_SECRET}
+      # Bộ nhận diện cục bộ (webcam, kiosk triển lãm) dùng chung container liveness.
+      LIVENESS_URL: http://liveness:8000
 
   # Frontend đã build tĩnh (npm run build ở máy dev, scp dist/ sang EC2) — không
   # build node bên trong container vì t3.micro chỉ có ~900MB RAM, npm ci + vite

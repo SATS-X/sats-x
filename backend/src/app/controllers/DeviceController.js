@@ -8,7 +8,7 @@ const DEVICE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const LIVENESS_VERDICTS = ['real', 'fake', 'unavailable'];
 
 /** Ghi nhận thiết bị vừa hoạt động; camera mới sẽ tự được thêm vào danh sách. */
-const touchDevice = async (deviceId, firmware) => {
+export const touchDevice = async (deviceId, firmware) => {
     if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId)) return null;
 
     const firmwareVersion = typeof firmware === 'string' && firmware ? firmware.slice(0, 32) : undefined;

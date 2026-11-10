@@ -90,6 +90,7 @@ model Student {
   classes     ClassStudent[]
   subjects    SubjectStudent[]
   attendances Attendance[]
+  faces       FaceTemplate[]
 
   @@index([fullName])
   @@map("student")
@@ -282,4 +283,21 @@ model SubjectClass {
   @@id([subjectId, classId])
   @@index([classId])
   @@map("subject_class")
+}
+
+// Khuôn mặt mẫu cho bộ nhận diện chạy cục bộ (liveness/app/faces.py). Mỗi bản ghi giữ
+// vector SFace 128 chiều đã chuẩn hoá và ảnh JPEG đã thu nhỏ để giáo viên kiểm tra.
+model FaceTemplate {
+  id              Int      @id @default(autoincrement())
+  studentId       String   @map("student_id") @db.VarChar(32)
+  embedding       Float[]
+  photo           Bytes
+  livenessVerdict String?  @map("liveness_verdict") @db.VarChar(16)
+  livenessScore   Float?   @map("liveness_score")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("face_template")
 }
