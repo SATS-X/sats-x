@@ -128,6 +128,7 @@ The model was comprehensively evaluated on a 2,000-sample test benchmark contain
 
 ### Operational Performance Metrics
 - **Overall Classification Accuracy**: **`86.0%`** on the 2,000-image set above, but only **`56.0%`** on a separate 200-image set (`evaluation_results/accuracy_results.json`). Treat these as unproven on real ESP32-CAM images: production defaults to `liveness_mode = "monitor"`, which flags suspected spoofs without rejecting anyone.
+- **One model for web and hardware**: `./start.sh` and production Docker both run `app/serving.py`, which scores every face with `app/liveness_model.py`. The `.tflite` file holds the same weights as the `.h5` (identical verdicts on 100/100 test images) and is about 24x faster. Preprocessing matches `test/accuracy_checker.py`: OpenCV bilinear resize, RGB, values in [0, 1]. ESP32-CAM images (`/v1/check`) and webcam images (`/v1/faces/analyze`) are cropped with the same 15% margin, so the same face gets the same score on both paths.
 - **Average Inference Latency**: **`96.7 ms`** per frame (CPU mode) / **`<25 ms`** (GPU CUDA mode)
 - **Input Tensor Dimensions**: `(96, 96, 3)` / `(224, 224, 3)` (dynamically detected)
 

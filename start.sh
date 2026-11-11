@@ -297,7 +297,7 @@ main() {
     if [[ "${SATS_X_SKIP_LIVENESS:-0}" != "1" ]]; then
         start_service liveness "$ROOT_DIR/liveness" \
             env SERVICE_TOKEN="$(env_value SERVICE_TOKEN "$ROOT_DIR/backend/.env")" \
-            "$ROOT_DIR/liveness/.venv/bin/python" -m uvicorn app.main:app \
+            "$ROOT_DIR/liveness/.venv/bin/python" -m uvicorn app.serving:app \
             --host 0.0.0.0 --port 8000
         wait_for_http liveness "$LIVENESS_URL" 120
     else

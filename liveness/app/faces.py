@@ -20,6 +20,11 @@ import numpy as np
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
+try:
+    from app.liveness_model import crop_with_margin, verdict
+except ImportError:  # started from inside app/
+    from liveness_model import crop_with_margin, verdict
+
 logger = logging.getLogger("faces")
 
 MODEL_DIR = Path(__file__).parent.parent / "models" / "faces"
@@ -33,7 +38,6 @@ DETECTION_THRESHOLD = 0.8
 MIN_FACE_PX = 80
 # Variance of the Laplacian on the aligned face; lower means blurry.
 MIN_SHARPNESS = 40.0
-LIVENESS_MARGIN = 0.15
 
 _lock = threading.Lock()
 _detector = None
@@ -81,15 +85,6 @@ def _decode(value: str) -> np.ndarray:
     return image
 
 
-def _crop(image: np.ndarray, face: np.ndarray) -> np.ndarray:
-    height, width = image.shape[:2]
-    x, y, w, h = face[:4]
-    mx, my = w * LIVENESS_MARGIN, h * LIVENESS_MARGIN
-    left, top = max(0, int(x - mx)), max(0, int(y - my))
-    right, bottom = min(width, int(x + w + mx)), min(height, int(y + h + my))
-    return image[top:bottom, left:right]
-
-
 def analyze(image: np.ndarray, liveness: Optional[Callable[[np.ndarray], float]] = None) -> dict:
     height, width = image.shape[:2]
     with _lock:
@@ -123,11 +118,10 @@ def analyze(image: np.ndarray, liveness: Optional[Callable[[np.ndarray], float]]
         "embedding": [round(float(v), 6) for v in embedding],
     }
 
-    crop = _crop(image, face)
+    crop = crop_with_margin(image, x, y, w, h)
     if liveness is not None and crop.size:
         try:
-            score = float(liveness(crop))
-            result["liveness"] = {"verdict": "real" if score > 0.5 else "fake", "score": round(score, 4)}
+            result["liveness"] = verdict(float(liveness(crop)))
         except Exception as error:  # liveness is advisory; recognition still works without it
             logger.warning("Liveness check failed: %s", error)
             result["liveness"] = {"verdict": "unavailable", "score": None}

@@ -20,8 +20,10 @@ import tensorflow as tf
 from pathlib import Path
 
 try:
+    from app import liveness_model as shared_liveness
     from app.faces import build_router
 except ImportError:  # started from inside app/
+    import liveness_model as shared_liveness
     from faces import build_router
 
 # Configure logging
@@ -82,14 +84,8 @@ def load_liveness_model():
         return None
 
 
-def _face_liveness(face_bgr: np.ndarray) -> float:
-    result = predict_liveness(face_bgr)
-    if result.get("score") is None:
-        raise RuntimeError(result.get("error", "Liveness model unavailable"))
-    return result["score"]
-
-
-app.include_router(build_router(_face_liveness))
+# Face routes share app/liveness_model.py with production so every path scores alike.
+app.include_router(build_router(shared_liveness.score_bgr))
 
 
 @app.on_event("startup")
